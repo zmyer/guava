@@ -16,8 +16,11 @@
 
 package com.google.common.collect;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.annotations.GwtCompatible;
 import com.google.common.base.Preconditions;
+import com.google.errorprone.annotations.concurrent.LazyInit;
 
 /**
  * Implementation of {@link ImmutableSet} with exactly one element.
@@ -37,6 +40,7 @@ final class SingletonImmutableSet<E> extends ImmutableSet<E> {
   // is zero and recalculate it themselves, or two threads will see it at
   // the same time, and both recalculate it.  If the cachedHashCode is 0,
   // it will always be recalculated, unfortunately.
+  @LazyInit
   private transient int cachedHashCode;
 
   SingletonImmutableSet(E element) {
@@ -62,6 +66,11 @@ final class SingletonImmutableSet<E> extends ImmutableSet<E> {
   @Override
   public UnmodifiableIterator<E> iterator() {
     return Iterators.singletonIterator(element);
+  }
+
+  @Override
+  ImmutableList<E> createAsList() {
+    return ImmutableList.of(element);
   }
 
   @Override
@@ -92,11 +101,6 @@ final class SingletonImmutableSet<E> extends ImmutableSet<E> {
 
   @Override
   public String toString() {
-    String elementToString = element.toString();
-    return new StringBuilder(elementToString.length() + 2)
-        .append('[')
-        .append(elementToString)
-        .append(']')
-        .toString();
+    return '[' + element.toString() + ']';
   }
 }

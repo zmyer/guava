@@ -27,16 +27,14 @@ import com.google.common.base.Objects;
 import com.google.common.collect.Maps.IteratorBasedAbstractMap;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.j2objc.annotations.WeakOuter;
-
 import java.io.Serializable;
 import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
-
+import java.util.Spliterator;
 import javax.annotation.Nullable;
 
 /**
@@ -219,29 +217,39 @@ public final class ArrayTable<R, C, V> extends AbstractTable<R, C, V> implements
       return keyIndex.isEmpty();
     }
 
+    Entry<K, V> getEntry(final int index) {
+      checkElementIndex(index, size());
+      return new AbstractMapEntry<K, V>() {
+        @Override
+        public K getKey() {
+          return ArrayMap.this.getKey(index);
+        }
+
+        @Override
+        public V getValue() {
+          return ArrayMap.this.getValue(index);
+        }
+
+        @Override
+        public V setValue(V value) {
+          return ArrayMap.this.setValue(index, value);
+        }
+      };
+    }
+
     @Override
     Iterator<Entry<K, V>> entryIterator() {
       return new AbstractIndexedListIterator<Entry<K, V>>(size()) {
         @Override
         protected Entry<K, V> get(final int index) {
-          return new AbstractMapEntry<K, V>() {
-            @Override
-            public K getKey() {
-              return ArrayMap.this.getKey(index);
-            }
-
-            @Override
-            public V getValue() {
-              return ArrayMap.this.getValue(index);
-            }
-
-            @Override
-            public V setValue(V value) {
-              return ArrayMap.this.setValue(index, value);
-            }
-          };
+          return getEntry(index);
         }
       };
+    }
+
+    @Override
+    Spliterator<Entry<K, V>> entrySpliterator() {
+      return CollectSpliterators.indexed(size(), Spliterator.ORDERED, this::getEntry);
     }
 
     // TODO(lowasser): consider an optimized values() implementation
@@ -356,10 +364,8 @@ public final class ArrayTable<R, C, V> extends AbstractTable<R, C, V> implements
    */
   @GwtIncompatible // reflection
   public V[][] toArray(Class<V> valueClass) {
-    // Can change to use varargs in JDK 1.6 if we want
     @SuppressWarnings("unchecked") // TODO: safe?
-    V[][] copy =
-        (V[][]) Array.newInstance(valueClass, new int[] {rowList.size(), columnList.size()});
+    V[][] copy = (V[][]) Array.newInstance(valueClass, rowList.size(), columnList.size());
     for (int i = 0; i < rowList.size(); i++) {
       System.arraycopy(array[i], 0, copy[i], 0, array[i].length);
     }
@@ -547,27 +553,43 @@ public final class ArrayTable<R, C, V> extends AbstractTable<R, C, V> implements
     return new AbstractIndexedListIterator<Cell<R, C, V>>(size()) {
       @Override
       protected Cell<R, C, V> get(final int index) {
-        return new Tables.AbstractCell<R, C, V>() {
-          final int rowIndex = index / columnList.size();
-          final int columnIndex = index % columnList.size();
-
-          @Override
-          public R getRowKey() {
-            return rowList.get(rowIndex);
-          }
-
-          @Override
-          public C getColumnKey() {
-            return columnList.get(columnIndex);
-          }
-
-          @Override
-          public V getValue() {
-            return at(rowIndex, columnIndex);
-          }
-        };
+        return getCell(index);
       }
     };
+  }
+  
+  @Override
+  Spliterator<Cell<R, C, V>> cellSpliterator() {
+    return CollectSpliterators.indexed(
+        size(), Spliterator.ORDERED | Spliterator.NONNULL | Spliterator.DISTINCT, this::getCell);
+  }
+
+  private Cell<R, C, V> getCell(final int index) {
+    return new Tables.AbstractCell<R, C, V>() {
+      final int rowIndex = index / columnList.size();
+      final int columnIndex = index % columnList.size();
+
+      @Override
+      public R getRowKey() {
+        return rowList.get(rowIndex);
+      }
+
+      @Override
+      public C getColumnKey() {
+        return columnList.get(columnIndex);
+      }
+
+      @Override
+      public V getValue() {
+        return at(rowIndex, columnIndex);
+      }
+    };
+  }
+
+  private V getValue(int index) {
+    int rowIndex = index / columnList.size();
+    int columnIndex = index % columnList.size();
+    return at(rowIndex, columnIndex);
   }
 
   /**
@@ -761,6 +783,21 @@ public final class ArrayTable<R, C, V> extends AbstractTable<R, C, V> implements
   @Override
   public Collection<V> values() {
     return super.values();
+  }
+
+  @Override
+  Iterator<V> valuesIterator() {
+    return new AbstractIndexedListIterator<V>(size()) {
+      @Override
+      protected V get(int index) {
+        return getValue(index);
+      }
+    };
+  }
+
+  @Override
+  Spliterator<V> valuesSpliterator() {
+    return CollectSpliterators.indexed(size(), Spliterator.ORDERED, this::getValue);
   }
 
   private static final long serialVersionUID = 0;

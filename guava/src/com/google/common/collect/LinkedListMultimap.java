@@ -16,6 +16,7 @@
 
 package com.google.common.collect;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndex;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.CollectPreconditions.checkRemove;
@@ -25,7 +26,6 @@ import com.google.common.annotations.GwtCompatible;
 import com.google.common.annotations.GwtIncompatible;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.j2objc.annotations.WeakOuter;
-
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -41,7 +41,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Set;
-
+import java.util.function.Consumer;
 import javax.annotation.Nullable;
 
 /**
@@ -809,6 +809,14 @@ public class LinkedListMultimap<K, V> extends AbstractMultimap<K, V>
       @Override
       public ListIterator<Entry<K, V>> listIterator(int index) {
         return new NodeIterator(index);
+      }
+
+      @Override
+      public void forEach(Consumer<? super Entry<K, V>> action) {
+        checkNotNull(action);
+        for (Node<K, V> node = head; node != null; node = node.next) {
+          action.accept(node);
+        }
       }
     }
     return new EntriesImpl();

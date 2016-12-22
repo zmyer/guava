@@ -23,7 +23,6 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -32,7 +31,6 @@ import java.lang.reflect.WildcardType;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import javax.annotation.Nullable;
 
 /**
@@ -137,6 +135,11 @@ public final class TypeResolver {
           return; // Okay to say Foo<A> is <?>
         }
         ParameterizedType toParameterizedType = expectArgument(ParameterizedType.class, to);
+        if (fromParameterizedType.getOwnerType() != null
+            && toParameterizedType.getOwnerType() != null) {
+          populateTypeMappings(
+              mappings, fromParameterizedType.getOwnerType(), toParameterizedType.getOwnerType());
+        }
         checkArgument(
             fromParameterizedType.getRawType().equals(toParameterizedType.getRawType()),
             "Inconsistent raw type: %s vs. %s",
@@ -472,12 +475,13 @@ public final class TypeResolver {
    * they are declared by the same {@link java.lang.reflect.GenericDeclaration} and have the same
    * name, even if their bounds differ.
    *
-   * <p>While resolving a type variable from a {var -> type} map, we don't care whether the type
-   * variable's bound has been partially resolved. As long as the type variable "identity" matches.
+   * <p>While resolving a type variable from a {@code var -> type} map, we don't care whether the
+   * type variable's bound has been partially resolved. As long as the type variable "identity"
+   * matches.
    *
-   * <p>On the other hand, if for example we are resolving List<A extends B> to List<A extends
-   * String>, we need to compare that <A extends B> is unequal to <A extends String> in order to
-   * decide to use the transformed type instead of the original type.
+   * <p>On the other hand, if for example we are resolving {@code List<A extends B>} to {@code
+   * List<A extends String>}, we need to compare that {@code <A extends B>} is unequal to {@code <A
+   * extends String>} in order to decide to use the transformed type instead of the original type.
    */
   static final class TypeVariableKey {
     private final TypeVariable<?> var;

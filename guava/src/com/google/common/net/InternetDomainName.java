@@ -26,9 +26,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.thirdparty.publicsuffix.PublicSuffixPatterns;
-
 import java.util.List;
-
 import javax.annotation.Nullable;
 
 /**
@@ -199,7 +197,7 @@ public final class InternetDomainName {
   }
 
   /**
-   * Validation method used by {@from} to ensure that the domain name is syntactically valid
+   * Validation method used by {@code from} to ensure that the domain name is syntactically valid
    * according to RFC 1035.
    *
    * @return Is the domain name syntactically valid?

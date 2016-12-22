@@ -17,7 +17,6 @@ package com.google.common.util.concurrent;
 import com.google.common.annotations.Beta;
 import com.google.common.annotations.GwtIncompatible;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -176,8 +175,8 @@ public interface Service {
    * The lifecycle states of a service.
    *
    * <p>The ordering of the {@link State} enum is defined such that if there is a state transition
-   * from {@code A -> B} then {@code A.compareTo(B} < 0}. N.B. The converse is not true, i.e. if
-   * {@code A.compareTo(B} < 0} then there is <b>not</b> guaranteed to be a valid state transition
+   * from {@code A -> B} then {@code A.compareTo(B) < 0}. N.B. The converse is not true, i.e. if
+   * {@code A.compareTo(B) < 0} then there is <b>not</b> guaranteed to be a valid state transition
    * {@code A -> B}.
    *
    * @since 9.0 (in 1.0 as {@code com.google.common.base.Service.State})

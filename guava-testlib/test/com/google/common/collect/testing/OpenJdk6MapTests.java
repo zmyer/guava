@@ -24,16 +24,16 @@ import static com.google.common.collect.testing.testers.CollectionCreationTester
 import static com.google.common.collect.testing.testers.MapCreationTester.getCreateWithNullKeyUnsupportedMethod;
 import static com.google.common.collect.testing.testers.MapEntrySetTester.getContainsEntryWithIncomparableKeyMethod;
 import static com.google.common.collect.testing.testers.MapEntrySetTester.getContainsEntryWithIncomparableValueMethod;
+import static com.google.common.collect.testing.testers.MapMergeTester.getMergeNullValueMethod;
 import static com.google.common.collect.testing.testers.MapPutAllTester.getPutAllNullKeyUnsupportedMethod;
 import static com.google.common.collect.testing.testers.MapPutTester.getPutNullKeyUnsupportedMethod;
-
-import junit.framework.Test;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import junit.framework.Test;
 
 /**
  * Tests the {@link Map} implementations of {@link java.util}, suppressing
@@ -57,7 +57,7 @@ public class OpenJdk6MapTests extends TestsForMapsInJavaUtil {
         getCreateWithNullKeyUnsupportedMethod(),
         getCreateWithNullUnsupportedMethod(), // for keySet
         getContainsEntryWithIncomparableKeyMethod(),
-        getContainsEntryWithIncomparableValueMethod()); 
+        getContainsEntryWithIncomparableValueMethod());
   }
 
   @Override
@@ -86,5 +86,10 @@ public class OpenJdk6MapTests extends TestsForMapsInJavaUtil {
     methods.add(getContainsEntryWithIncomparableKeyMethod());
     methods.add(getContainsEntryWithIncomparableValueMethod());
     return methods;
+  }
+
+  @Override
+  protected Collection<Method> suppressForHashtable() {
+    return Arrays.asList(getMergeNullValueMethod());
   }
 }

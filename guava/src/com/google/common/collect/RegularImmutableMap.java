@@ -16,13 +16,17 @@
 
 package com.google.common.collect;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndex;
 import static com.google.common.collect.CollectPreconditions.checkEntryNotNull;
 import static com.google.common.collect.ImmutableMapEntry.createEntryArray;
 
 import com.google.common.annotations.GwtCompatible;
+import com.google.common.annotations.GwtIncompatible;
 import com.google.common.collect.ImmutableMapEntry.NonTerminalImmutableMapEntry;
-
+import com.google.j2objc.annotations.Weak;
+import java.io.Serializable;
+import java.util.function.BiConsumer;
 import javax.annotation.Nullable;
 
 /**
@@ -136,6 +140,14 @@ final class RegularImmutableMap<K, V> extends ImmutableMap<K, V> {
   }
 
   @Override
+  public void forEach(BiConsumer<? super K, ? super V> action) {
+    checkNotNull(action);
+    for (Entry<K, V> entry : entries) {
+      action.accept(entry.getKey(), entry.getValue());
+    }
+  }
+
+  @Override
   public int size() {
     return entries.length;
   }
@@ -148,6 +160,111 @@ final class RegularImmutableMap<K, V> extends ImmutableMap<K, V> {
   @Override
   ImmutableSet<Entry<K, V>> createEntrySet() {
     return new ImmutableMapEntrySet.RegularEntrySet<K, V>(this, entries);
+  }
+
+  @Override
+  ImmutableSet<K> createKeySet() {
+    return new KeySet<K, V>(this);
+  }
+
+  @GwtCompatible(emulated = true)
+  private static final class KeySet<K, V> extends ImmutableSet.Indexed<K> {
+    @Weak private final RegularImmutableMap<K, V> map;
+
+    KeySet(RegularImmutableMap<K, V> map) {
+      this.map = map;
+    }
+
+    @Override
+    K get(int index) {
+      return map.entries[index].getKey();
+    }
+
+    @Override
+    public boolean contains(Object object) {
+      return map.containsKey(object);
+    }
+
+    @Override
+    boolean isPartialView() {
+      return true;
+    }
+
+    @Override
+    public int size() {
+      return map.size();
+    }
+
+    @GwtIncompatible // serialization
+    @Override
+    Object writeReplace() {
+      return new SerializedForm<K>(map);
+    }
+
+    @GwtIncompatible // serialization
+    private static class SerializedForm<K> implements Serializable {
+      final ImmutableMap<K, ?> map;
+
+      SerializedForm(ImmutableMap<K, ?> map) {
+        this.map = map;
+      }
+
+      Object readResolve() {
+        return map.keySet();
+      }
+
+      private static final long serialVersionUID = 0;
+    }
+  }
+
+  @Override
+  ImmutableCollection<V> createValues() {
+    return new Values<K, V>(this);
+  }
+
+  @GwtCompatible(emulated = true)
+  private static final class Values<K, V> extends ImmutableList<V> {
+    @Weak final RegularImmutableMap<K, V> map;
+
+    Values(RegularImmutableMap<K, V> map) {
+      this.map = map;
+    }
+
+    @Override
+    public V get(int index) {
+      return map.entries[index].getValue();
+    }
+
+    @Override
+    public int size() {
+      return map.size();
+    }
+
+    @Override
+    boolean isPartialView() {
+      return true;
+    }
+
+    @GwtIncompatible // serialization
+    @Override
+    Object writeReplace() {
+      return new SerializedForm<V>(map);
+    }
+
+    @GwtIncompatible // serialization
+    private static class SerializedForm<V> implements Serializable {
+      final ImmutableMap<?, V> map;
+
+      SerializedForm(ImmutableMap<?, V> map) {
+        this.map = map;
+      }
+
+      Object readResolve() {
+        return map.values();
+      }
+
+      private static final long serialVersionUID = 0;
+    }
   }
 
   // This class is never actually serialized directly, but we have to make the

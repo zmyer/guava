@@ -31,7 +31,6 @@ import com.google.common.collect.testing.IteratorFeature;
 import com.google.common.collect.testing.ListIteratorTester;
 import com.google.common.collect.testing.features.CollectionFeature;
 import com.google.common.collect.testing.features.ListFeature;
-
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.ListIterator;
@@ -48,8 +47,6 @@ import java.util.concurrent.CopyOnWriteArraySet;
  */
 @GwtCompatible(emulated = true)
 public class ListListIteratorTester<E> extends AbstractListTester<E> {
-  // TODO: switch to DerivedIteratorTestSuiteBuilder
-
   @CollectionFeature.Require(absent = SUPPORTS_REMOVE)
   @ListFeature.Require(absent = {SUPPORTS_SET, SUPPORTS_ADD_WITH_INDEX})
   public void testListIterator_unmodifiable() {

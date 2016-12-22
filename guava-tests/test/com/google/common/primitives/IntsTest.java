@@ -22,15 +22,13 @@ import com.google.common.base.Converter;
 import com.google.common.collect.testing.Helpers;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.SerializableTester;
-
-import junit.framework.TestCase;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
+import junit.framework.TestCase;
 
 /**
  * Unit test for {@link Ints}.
@@ -202,6 +200,19 @@ public class IntsTest extends TestCase {
         (int) 5, (int) 3, (int) 0, (int) 9));
   }
 
+  public void testConstrainToRange() {
+    assertEquals((int) 1, Ints.constrainToRange((int) 1, (int) 0, (int) 5));
+    assertEquals((int) 1, Ints.constrainToRange((int) 1, (int) 1, (int) 5));
+    assertEquals((int) 3, Ints.constrainToRange((int) 1, (int) 3, (int) 5));
+    assertEquals((int) -1, Ints.constrainToRange((int) 0, (int) -5, (int) -1));
+    assertEquals((int) 2, Ints.constrainToRange((int) 5, (int) 2, (int) 2));
+    try {
+      Ints.constrainToRange((int) 1, (int) 3, (int) 2);
+      fail();
+    } catch (IllegalArgumentException expected) {
+    }
+  }
+
   public void testConcat() {
     assertTrue(Arrays.equals(EMPTY, Ints.concat()));
     assertTrue(Arrays.equals(EMPTY, Ints.concat(EMPTY)));
@@ -217,7 +228,6 @@ public class IntsTest extends TestCase {
         Ints.concat(ARRAY1, ARRAY234)));
   }
 
-  @GwtIncompatible // Ints.toByteArray
   public void testToByteArray() {
     assertTrue(Arrays.equals(
         new byte[] {0x12, 0x13, 0x14, 0x15}, Ints.toByteArray(0x12131415)));
@@ -226,7 +236,6 @@ public class IntsTest extends TestCase {
         Ints.toByteArray(0xFFEEDDCC)));
   }
 
-  @GwtIncompatible // Ints.fromByteArray
   public void testFromByteArray() {
     assertEquals(0x12131415,
         Ints.fromByteArray(new byte[] {0x12, 0x13, 0x14, 0x15, 0x33}));
@@ -234,7 +243,6 @@ public class IntsTest extends TestCase {
         new byte[] {(byte) 0xFF, (byte) 0xEE, (byte) 0xDD, (byte) 0xCC}));
   }
 
-  @GwtIncompatible // Ints.fromByteArray
   public void testFromByteArrayFails() {
     try {
       Ints.fromByteArray(new byte[Ints.BYTES - 1]);
@@ -243,7 +251,6 @@ public class IntsTest extends TestCase {
     }
   }
 
-  @GwtIncompatible // Ints.fromBytes
   public void testFromBytes() {
     assertEquals(0x12131415, Ints.fromBytes(
         (byte) 0x12, (byte) 0x13, (byte) 0x14, (byte) 0x15));
@@ -251,7 +258,6 @@ public class IntsTest extends TestCase {
         (byte) 0xFF, (byte) 0xEE, (byte) 0xDD, (byte) 0xCC));
   }
 
-  @GwtIncompatible // Ints.fromByteArray, Ints.toByteArray
   public void testByteArrayRoundTrips() {
     Random r = new Random(5);
     byte[] b = new byte[Ints.BYTES];

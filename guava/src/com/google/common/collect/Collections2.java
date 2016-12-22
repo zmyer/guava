@@ -18,9 +18,6 @@ package com.google.common.collect;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Predicates.and;
-import static com.google.common.base.Predicates.in;
-import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.CollectPreconditions.checkNonnegative;
 import static com.google.common.math.LongMath.binomial;
 
@@ -32,7 +29,6 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.math.IntMath;
 import com.google.common.primitives.Ints;
-
 import java.util.AbstractCollection;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -41,11 +37,17 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
-
+import java.util.Spliterator;
+import java.util.function.Consumer;
 import javax.annotation.Nullable;
 
 /**
  * Provides static methods for working with {@code Collection} instances.
+ *
+ * <p><b>Java 8 users:</b> several common uses for this class are now more comprehensively addressed
+ * by the new {@link java.util.stream.Stream} library. Read the method documentation below for
+ * comparisons. These methods are not being deprecated, but we gently encourage you to migrate to
+ * streams.
  *
  * @author Chris Povirk
  * @author Mike Bostock
@@ -83,6 +85,8 @@ public final class Collections2 {
    * as {@code Predicates.instanceOf(ArrayList.class)}, which is inconsistent
    * with equals. (See {@link Iterables#filter(Iterable, Class)} for related
    * functionality.)
+   *
+   * <p><b>{@code Stream} equivalent:</b> {@link Stream#filter}.
    */
   // TODO(kevinb): how can we omit that Iterables link when building gwt
   // javadoc?
@@ -187,18 +191,40 @@ public final class Collections2 {
     }
 
     @Override
+    public Spliterator<E> spliterator() {
+      return CollectSpliterators.filter(unfiltered.spliterator(), predicate);
+    }
+
+    @Override
+    public void forEach(Consumer<? super E> action) {
+      checkNotNull(action);
+      unfiltered.forEach(
+          (E e) -> {
+            if (predicate.test(e)) {
+              action.accept(e);
+            }
+          });
+    }
+
+    @Override
     public boolean remove(Object element) {
       return contains(element) && unfiltered.remove(element);
     }
 
     @Override
     public boolean removeAll(final Collection<?> collection) {
-      return Iterables.removeIf(unfiltered, and(predicate, Predicates.<Object>in(collection)));
+      return removeIf(collection::contains);
     }
 
     @Override
     public boolean retainAll(final Collection<?> collection) {
-      return Iterables.removeIf(unfiltered, and(predicate, not(Predicates.<Object>in(collection))));
+      return removeIf(element -> !collection.contains(element));
+    }
+
+    @Override
+    public boolean removeIf(java.util.function.Predicate<? super E> filter) {
+      checkNotNull(filter);
+      return unfiltered.removeIf(element -> predicate.apply(element) && filter.test(element));
     }
 
     @Override
@@ -236,6 +262,8 @@ public final class Collections2 {
    * <p>If the input {@code Collection} is known to be a {@code List}, consider
    * {@link Lists#transform}. If only an {@code Iterable} is available, use
    * {@link Iterables#transform}.
+   *
+   * <p><b>{@code Stream} equivalent:</b> {@link Stream#map}.
    */
   public static <F, T> Collection<T> transform(
       Collection<F> fromCollection, Function<? super F, T> function) {
@@ -264,6 +292,23 @@ public final class Collections2 {
     @Override
     public Iterator<T> iterator() {
       return Iterators.transform(fromCollection.iterator(), function);
+    }
+
+    @Override
+    public Spliterator<T> spliterator() {
+      return CollectSpliterators.map(fromCollection.spliterator(), function);
+    }
+
+    @Override
+    public void forEach(Consumer<? super T> action) {
+      checkNotNull(action);
+      fromCollection.forEach((F f) -> action.accept(function.apply(f)));
+    }
+
+    @Override
+    public boolean removeIf(java.util.function.Predicate<? super T> filter) {
+      checkNotNull(filter);
+      return fromCollection.removeIf(element -> filter.test(function.apply(element)));
     }
 
     @Override

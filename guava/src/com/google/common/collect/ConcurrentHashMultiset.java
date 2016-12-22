@@ -29,7 +29,6 @@ import com.google.common.math.IntMath;
 import com.google.common.primitives.Ints;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.j2objc.annotations.WeakOuter;
-
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -42,7 +41,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import javax.annotation.Nullable;
 
 /**
@@ -106,44 +104,27 @@ public final class ConcurrentHashMultiset<E> extends AbstractMultiset<E> impleme
   }
 
   /**
-   * Creates a new, empty {@code ConcurrentHashMultiset} using {@code mapMaker}
-   * to construct the internal backing map.
+   * Creates a new, empty {@code ConcurrentHashMultiset} using {@code countMap} as the internal
+   * backing map.
    *
-   * <p>If this {@link MapMaker} is configured to use entry eviction of any kind, this eviction
-   * applies to all occurrences of a given element as a single unit. However, most updates to the
-   * multiset do not count as map updates at all, since we're usually just mutating the value
-   * stored in the map, so {@link MapMaker#expireAfterAccess} makes sense (evict the entry that
-   * was queried or updated longest ago), but {@link MapMaker#expireAfterWrite} doesn't, because
-   * the eviction time is measured from when we saw the first occurrence of the object.
+   * <p>This instance will assume ownership of {@code countMap}, and other code should not maintain
+   * references to the map or modify it in any way.
    *
-   * <p>The returned multiset is serializable but any serialization caveats
-   * given in {@code MapMaker} apply.
+   * <p>The returned multiset is serializable if the input map is.
    *
-   * <p>Finally, soft/weak values can be used but are not very useful: the values are created
-   * internally and not exposed externally, so no one else will have a strong reference to the
-   * values. Weak keys on the other hand can be useful in some scenarios.
-   *
-   * @since 15.0 (source compatible (accepting the since removed {@code GenericMapMaker} class)
-   *     since 7.0)
+   * @param countMap backing map for storing the elements in the multiset and their counts. It must
+   *     be empty.
+   * @throws IllegalArgumentException if {@code countMap} is not empty
+   * @since 20.0
    */
   @Beta
-  public static <E> ConcurrentHashMultiset<E> create(MapMaker mapMaker) {
-    return new ConcurrentHashMultiset<E>(mapMaker.<E, AtomicInteger>makeMap());
+  public static <E> ConcurrentHashMultiset<E> create(ConcurrentMap<E, AtomicInteger> countMap) {
+    return new ConcurrentHashMultiset<E>(countMap);
   }
 
-  /**
-   * Creates an instance using {@code countMap} to store elements and their counts.
-   *
-   * <p>This instance will assume ownership of {@code countMap}, and other code
-   * should not maintain references to the map or modify it in any way.
-   *
-   * @param countMap backing map for storing the elements in the multiset and
-   *     their counts. It must be empty.
-   * @throws IllegalArgumentException if {@code countMap} is not empty
-   */
   @VisibleForTesting
   ConcurrentHashMultiset(ConcurrentMap<E, AtomicInteger> countMap) {
-    checkArgument(countMap.isEmpty());
+    checkArgument(countMap.isEmpty(), "the backing map (%s) must be empty", countMap);
     this.countMap = countMap;
   }
 

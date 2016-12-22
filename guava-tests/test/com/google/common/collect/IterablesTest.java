@@ -16,7 +16,6 @@
 
 package com.google.common.collect;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Iterables.skip;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newLinkedHashSet;
@@ -34,10 +33,6 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.testing.IteratorTester;
 import com.google.common.testing.ClassSanityTester;
 import com.google.common.testing.NullPointerTester;
-
-import junit.framework.AssertionFailedError;
-import junit.framework.TestCase;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -51,6 +46,8 @@ import java.util.RandomAccess;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import junit.framework.AssertionFailedError;
+import junit.framework.TestCase;
 
 /**
  * Unit test for {@code Iterables}.
@@ -1039,16 +1036,8 @@ public class IterablesTest extends TestCase {
 
   public void testRemoveIf_randomAccess_notPermittingDuplicates() {
     // https://github.com/google/guava/issues/1596
-    final List<String> delegate = newArrayList("a", "b", "c", "d", "e");
-    List<String> uniqueList = Constraints.constrainedList(delegate,
-        new Constraint<String>() {
-          @Override
-          public String checkElement(String element) {
-            checkArgument(
-                !delegate.contains(element), "this list does not permit duplicate elements");
-            return element;
-          }
-        });
+    List<String> uniqueList = newArrayList("a", "b", "c", "d", "e");
+    assertThat(uniqueList).containsNoDuplicates();
 
     assertTrue(uniqueList instanceof RandomAccess);
     assertTrue(Iterables.removeIf(uniqueList,
@@ -1113,6 +1102,37 @@ public class IterablesTest extends TestCase {
             return s.equals("x") || s.equals("y") || s.equals("z");
           }
         }));
+    assertEquals(newArrayList("a", "c", "e"), list);
+  }
+
+  public void testRemoveIf_iterable() {
+    final List<String> list = Lists.newLinkedList(asList("a", "b", "c", "d", "e"));
+    Iterable<String> iterable =
+        new Iterable<String>() {
+          @Override
+          public Iterator<String> iterator() {
+            return list.iterator();
+          }
+        };
+    assertTrue(
+        Iterables.removeIf(
+            iterable,
+            new Predicate<String>() {
+              @Override
+              public boolean apply(String s) {
+                return s.equals("b") || s.equals("d") || s.equals("f");
+              }
+            }));
+    assertEquals(newArrayList("a", "c", "e"), list);
+    assertFalse(
+        Iterables.removeIf(
+            iterable,
+            new Predicate<String>() {
+              @Override
+              public boolean apply(String s) {
+                return s.equals("x") || s.equals("y") || s.equals("z");
+              }
+            }));
     assertEquals(newArrayList("a", "c", "e"), list);
   }
 

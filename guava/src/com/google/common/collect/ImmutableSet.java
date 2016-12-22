@@ -17,13 +17,16 @@
 package com.google.common.collect;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ObjectArrays.checkElementNotNull;
 
+import com.google.common.annotations.Beta;
 import com.google.common.annotations.GwtCompatible;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.primitives.Ints;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-
+import com.google.errorprone.annotations.concurrent.LazyInit;
+import com.google.j2objc.annotations.RetainedWith;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collection;
@@ -31,7 +34,9 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.Set;
-
+import java.util.Spliterator;
+import java.util.function.Consumer;
+import java.util.stream.Collector;
 import javax.annotation.Nullable;
 
 /**
@@ -43,6 +48,22 @@ import javax.annotation.Nullable;
 @GwtCompatible(serializable = true, emulated = true)
 @SuppressWarnings("serial") // we're overriding default serialization
 public abstract class ImmutableSet<E> extends ImmutableCollection<E> implements Set<E> {
+  static final int SPLITERATOR_CHARACTERISTICS =
+      ImmutableCollection.SPLITERATOR_CHARACTERISTICS | Spliterator.DISTINCT;
+
+  /**
+   * Returns a {@code Collector} that accumulates the input elements into a new
+   * {@code ImmutableSet}.  Elements are added in encounter order; if the
+   * elements contain duplicates (according to {@link Object#equals(Object)}),
+   * only the first duplicate in encounter order will appear in the result.
+   *
+   * @since 21.0
+   */
+  @Beta
+  public static <E> Collector<E, ?, ImmutableSet<E>> toImmutableSet() {
+    return CollectCollectors.toImmutableSet();
+  }
+
   /**
    * Returns the empty immutable set. Preferred over {@link Collections#emptySet} for code
    * consistency, and because the return type conveys the immutability guarantee.
@@ -178,7 +199,7 @@ public abstract class ImmutableSet<E> extends ImmutableCollection<E> implements 
       return construct(uniques, elements);
     } else {
       Object[] uniqueElements =
-          (uniques < elements.length) ? ObjectArrays.arraysCopyOf(elements, uniques) : elements;
+          (uniques < elements.length) ? Arrays.copyOf(elements, uniques) : elements;
       return new RegularImmutableSet<E>(uniqueElements, hashCode, table, mask);
     }
   }
@@ -193,12 +214,11 @@ public abstract class ImmutableSet<E> extends ImmutableCollection<E> implements 
   private static final int CUTOFF = (int) (MAX_TABLE_SIZE * DESIRED_LOAD_FACTOR);
 
   /**
-   * Returns an array size suitable for the backing array of a hash table that
-   * uses open addressing with linear probing in its implementation.  The
-   * returned size is the smallest power of two that can hold setSize elements
-   * with the desired load factor.
+   * Returns an array size suitable for the backing array of a hash table that uses open addressing
+   * with linear probing in its implementation. The returned size is the smallest power of two that
+   * can hold setSize elements with the desired load factor.
    *
-   * <p>Do not call this method with setSize < 2.
+   * <p>Do not call this method with setSize less than 2.
    */
   @VisibleForTesting
   static int chooseTableSize(int setSize) {
@@ -337,12 +357,40 @@ public abstract class ImmutableSet<E> extends ImmutableCollection<E> implements 
   @Override
   public abstract UnmodifiableIterator<E> iterator();
 
+  @LazyInit
+  @RetainedWith
+  private transient ImmutableList<E> asList;
+
+  @Override
+  public ImmutableList<E> asList() {
+    ImmutableList<E> result = asList;
+    return (result == null) ? asList = createAsList() : result;
+  }
+
+  ImmutableList<E> createAsList() {
+    return new RegularImmutableAsList<E>(this, toArray());
+  }
+
   abstract static class Indexed<E> extends ImmutableSet<E> {
     abstract E get(int index);
 
     @Override
     public UnmodifiableIterator<E> iterator() {
       return asList().iterator();
+    }
+
+    @Override
+    public Spliterator<E> spliterator() {
+      return CollectSpliterators.indexed(size(), SPLITERATOR_CHARACTERISTICS, this::get);
+    }
+
+    @Override
+    public void forEach(Consumer<? super E> consumer) {
+      checkNotNull(consumer);
+      int n = size();
+      for (int i = 0; i < n; i++) {
+        consumer.accept(get(i));
+      }
     }
 
     @Override
@@ -484,6 +532,13 @@ public abstract class ImmutableSet<E> extends ImmutableCollection<E> implements 
     @Override
     public Builder<E> addAll(Iterator<? extends E> elements) {
       super.addAll(elements);
+      return this;
+    }
+
+    @CanIgnoreReturnValue
+    @Override
+    Builder<E> combine(ArrayBasedBuilder<E> builder) {
+      super.combine(builder);
       return this;
     }
 

@@ -25,7 +25,6 @@ import com.google.common.annotations.Beta;
 import com.google.common.annotations.GwtCompatible;
 import com.google.common.annotations.GwtIncompatible;
 import com.google.common.base.Converter;
-
 import java.io.Serializable;
 import java.util.AbstractList;
 import java.util.Arrays;
@@ -35,7 +34,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.RandomAccess;
 import java.util.regex.Pattern;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 
@@ -56,6 +54,8 @@ public final class Doubles {
   /**
    * The number of bytes required to represent a primitive {@code double} value.
    *
+   * <p><b>Java 8 users:</b> use {@link Double#BYTES} instead.
+   *
    * @since 10.0
    */
   public static final int BYTES = Double.SIZE / Byte.SIZE;
@@ -63,6 +63,8 @@ public final class Doubles {
   /**
    * Returns a hash code for {@code value}; equal to the result of invoking
    * {@code ((Double) value).hashCode()}.
+   *
+   * <p><b>Java 8 users:</b> use {@link Double#hashCode(double)} instead.
    *
    * @param value a primitive {@code double} value
    * @return a hash code for the value
@@ -95,6 +97,8 @@ public final class Doubles {
   /**
    * Returns {@code true} if {@code value} represents a real number. This is equivalent to, but not
    * necessarily implemented as, {@code !(Double.isInfinite(value) || Double.isNaN(value))}.
+   *
+   * <p><b>Java 8 users:</b> use {@link Double#isFinite(double)} instead.
    *
    * @since 10.0
    */
@@ -232,6 +236,25 @@ public final class Doubles {
       max = Math.max(max, array[i]);
     }
     return max;
+  }
+
+  /**
+   * Returns the value nearest to {@code value} which is within the closed range {@code [min..max]}.
+   *
+   * <p>If {@code value} is within the range {@code [min..max]}, {@code value} is returned
+   * unchanged. If {@code value} is less than {@code min}, {@code min} is returned, and if
+   * {@code value} is greater than {@code max}, {@code max} is returned.
+   *
+   * @param value the {@code double} value to constrain
+   * @param min the lower bound (inclusive) of the range to constrain {@code value} to
+   * @param max the upper bound (inclusive) of the range to constrain {@code value} to
+   * @throws IllegalArgumentException if {@code min > max}
+   * @since 21.0
+   */
+  @Beta
+  public static double constrainToRange(double value, double min, double max) {
+    checkArgument(min <= max, "min (%s) must be less than or equal to max (%s)", min, max);
+    return Math.min(Math.max(value, min), max);
   }
 
   /**
@@ -551,11 +574,7 @@ public final class Doubles {
     }
 
     double[] toDoubleArray() {
-      // Arrays.copyOfRange() is not available under GWT
-      int size = size();
-      double[] result = new double[size];
-      System.arraycopy(array, start, result, 0, size);
-      return result;
+      return Arrays.copyOfRange(array, start, end);
     }
 
     private static final long serialVersionUID = 0;

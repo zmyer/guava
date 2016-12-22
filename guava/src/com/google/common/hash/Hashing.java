@@ -19,7 +19,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.annotations.Beta;
 import com.google.common.base.Supplier;
-
 import java.security.Key;
 import java.security.MessageDigest;
 import java.util.ArrayList;
@@ -29,7 +28,6 @@ import java.util.List;
 import java.util.zip.Adler32;
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
-
 import javax.annotation.Nullable;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -92,8 +90,8 @@ public final class Hashing {
 
   /**
    * Returns a hash function implementing the
-   * <a href="http://smhasher.googlecode.com/svn/trunk/MurmurHash3.cpp">32-bit murmur3 algorithm,
-   * x86 variant</a> (little-endian variant), using the given seed value.
+   * <a href="https://github.com/aappleby/smhasher/blob/master/src/MurmurHash3.cpp">32-bit murmur3
+   * algorithm, x86 variant</a> (little-endian variant), using the given seed value.
    *
    * <p>The exact C++ equivalent is the MurmurHash3_x86_32 function (Murmur3A).
    */
@@ -103,8 +101,8 @@ public final class Hashing {
 
   /**
    * Returns a hash function implementing the
-   * <a href="http://smhasher.googlecode.com/svn/trunk/MurmurHash3.cpp">32-bit murmur3 algorithm,
-   * x86 variant</a> (little-endian variant), using a seed value of zero.
+   * <a href="https://github.com/aappleby/smhasher/blob/master/src/MurmurHash3.cpp">32-bit murmur3
+   * algorithm, x86 variant</a> (little-endian variant), using a seed value of zero.
    *
    * <p>The exact C++ equivalent is the MurmurHash3_x86_32 function (Murmur3A).
    */
@@ -121,8 +119,8 @@ public final class Hashing {
 
   /**
    * Returns a hash function implementing the
-   * <a href="http://smhasher.googlecode.com/svn/trunk/MurmurHash3.cpp">128-bit murmur3 algorithm,
-   * x64 variant</a> (little-endian variant), using the given seed value.
+   * <a href="https://github.com/aappleby/smhasher/blob/master/src/MurmurHash3.cpp">128-bit murmur3
+   * algorithm, x64 variant</a> (little-endian variant), using the given seed value.
    *
    * <p>The exact C++ equivalent is the MurmurHash3_x64_128 function (Murmur3F).
    */
@@ -132,8 +130,8 @@ public final class Hashing {
 
   /**
    * Returns a hash function implementing the
-   * <a href="http://smhasher.googlecode.com/svn/trunk/MurmurHash3.cpp">128-bit murmur3 algorithm,
-   * x64 variant</a> (little-endian variant), using a seed value of zero.
+   * <a href="https://github.com/aappleby/smhasher/blob/master/src/MurmurHash3.cpp">128-bit murmur3
+   * algorithm, x64 variant</a> (little-endian variant), using a seed value of zero.
    *
    * <p>The exact C++ equivalent is the MurmurHash3_x64_128 function (Murmur3F).
    */

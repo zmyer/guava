@@ -21,15 +21,13 @@ import com.google.common.annotations.GwtIncompatible;
 import com.google.common.collect.testing.Helpers;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.SerializableTester;
-
-import junit.framework.TestCase;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import junit.framework.TestCase;
 
 /**
  * Unit test for {@link Chars}.
@@ -199,6 +197,19 @@ public class CharsTest extends TestCase {
     assertEquals((char) 0, Chars.min(
         (char) 8, (char) 6, (char) 7,
         (char) 5, (char) 3, (char) 0, (char) 9));
+  }
+
+  public void testConstrainToRange() {
+    assertEquals((char) 1, Chars.constrainToRange((char) 1, (char) 0, (char) 5));
+    assertEquals((char) 1, Chars.constrainToRange((char) 1, (char) 1, (char) 5));
+    assertEquals((char) 3, Chars.constrainToRange((char) 1, (char) 3, (char) 5));
+    assertEquals((char) 254, Chars.constrainToRange((char) 255, (char) 250, (char) 254));
+    assertEquals((char) 2, Chars.constrainToRange((char) 5, (char) 2, (char) 2));
+    try {
+      Chars.constrainToRange((char) 1, (char) 3, (char) 2);
+      fail();
+    } catch (IllegalArgumentException expected) {
+    }
   }
 
   public void testConcat() {

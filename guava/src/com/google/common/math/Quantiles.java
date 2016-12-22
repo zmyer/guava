@@ -25,7 +25,6 @@ import com.google.common.annotations.Beta;
 import com.google.common.annotations.GwtIncompatible;
 import com.google.common.primitives.Doubles;
 import com.google.common.primitives.Ints;
-
 import java.math.RoundingMode;
 import java.util.Collection;
 import java.util.HashMap;
@@ -272,8 +271,7 @@ public final class Quantiles {
      *
      * @param dataset the dataset to do the calculation on, which must be non-empty, and which will
      *     be arbitrarily reordered by this method call
-     * @return an unmodifiable map of results: the keys will be the specified quantile indexes, and
-     *     the values the corresponding quantile values
+     * @return the quantile value
      */
     public double computeInPlace(double... dataset) {
       checkArgument(dataset.length > 0, "Cannot calculate quantiles of an empty dataset");
@@ -633,11 +631,11 @@ public final class Quantiles {
   /**
    * Chooses the next selection to do from the required selections. It is required that the array
    * {@code allRequired} is sorted and that {@code allRequired[i]} are in the range [{@code from},
-   * {@code to}] for all {@code i} in the range [{@code requiredFrom}, {@requiredTo}]. The value
-   * returned by this method is the {@code i} in that range such that {@code allRequired[i]} is as
-   * close as possible to the center of the range [{@code from}, {@code to}]. Choosing the value
-   * closest to the center of the range first is the most efficient strategy because it minimizes
-   * the size of the subranges from which the remaining selections must be done.
+   * {@code to}] for all {@code i} in the range [{@code requiredFrom}, {@code requiredTo}]. The
+   * value returned by this method is the {@code i} in that range such that {@code allRequired[i]}
+   * is as close as possible to the center of the range [{@code from}, {@code to}]. Choosing the
+   * value closest to the center of the range first is the most efficient strategy because it
+   * minimizes the size of the subranges from which the remaining selections must be done.
    */
   private static int chooseNextSelection(
       int[] allRequired, int requiredFrom, int requiredTo, int from, int to) {

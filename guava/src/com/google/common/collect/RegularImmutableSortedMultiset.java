@@ -20,9 +20,8 @@ import static com.google.common.collect.BoundType.CLOSED;
 
 import com.google.common.annotations.GwtIncompatible;
 import com.google.common.primitives.Ints;
-
 import java.util.Comparator;
-
+import java.util.function.ObjIntConsumer;
 import javax.annotation.Nullable;
 
 /**
@@ -65,6 +64,14 @@ final class RegularImmutableSortedMultiset<E> extends ImmutableSortedMultiset<E>
   @Override
   Entry<E> getEntry(int index) {
     return Multisets.immutableEntry(elementSet.asList().get(index), getCount(index));
+  }
+
+  @Override
+  public void forEachEntry(ObjIntConsumer<? super E> action) {
+    checkNotNull(action);
+    for (int i = 0; i < size(); i++) {
+      action.accept(elementSet.asList().get(i), getCount(i));
+    }
   }
 
   @Override
@@ -112,8 +119,7 @@ final class RegularImmutableSortedMultiset<E> extends ImmutableSortedMultiset<E>
     } else if (from == 0 && to == length) {
       return this;
     } else {
-      RegularImmutableSortedSet<E> subElementSet =
-          (RegularImmutableSortedSet<E>) elementSet.getSubSet(from, to);
+      RegularImmutableSortedSet<E> subElementSet = elementSet.getSubSet(from, to);
       return new RegularImmutableSortedMultiset<E>(
           subElementSet, cumulativeCounts, offset + from, to - from);
     }

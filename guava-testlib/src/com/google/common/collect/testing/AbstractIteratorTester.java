@@ -20,9 +20,6 @@ import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.fail;
 
 import com.google.common.annotations.GwtCompatible;
-
-import junit.framework.AssertionFailedError;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -33,6 +30,7 @@ import java.util.ListIterator;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.Stack;
+import junit.framework.AssertionFailedError;
 
 /**
  * Most of the logic for {@link IteratorTester} and {@link ListIteratorTester}.
@@ -332,6 +330,22 @@ abstract class AbstractIteratorTester<E, I extends Iterator<E>> {
       recurse(0);
     } catch (RuntimeException e) {
       throw new RuntimeException(Arrays.toString(stimuli), e);
+    }
+  }
+  
+  public void testForEachRemaining() {
+    for (int i = 0; i < expectedElements.size() - 1; i++) {
+      List<E> targetElements = new ArrayList<E>();
+      Iterator<E> iterator = newTargetIterator();
+      for (int j = 0; j < i; j++) {
+        targetElements.add(iterator.next());
+      }
+      iterator.forEachRemaining(targetElements::add);
+      if (knownOrder == KnownOrder.KNOWN_ORDER) {
+        assertEquals(expectedElements, targetElements);
+      } else {
+        Helpers.assertEqualIgnoringOrder(expectedElements, targetElements);
+      }
     }
   }
 

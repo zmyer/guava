@@ -25,14 +25,14 @@ import static com.google.common.collect.SortedLists.KeyPresentBehavior.FIRST_PRE
 
 import com.google.common.annotations.GwtCompatible;
 import com.google.common.annotations.GwtIncompatible;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Set;
-
+import java.util.Spliterator;
+import java.util.function.Consumer;
 import javax.annotation.Nullable;
 
 /**
@@ -64,6 +64,16 @@ final class RegularImmutableSortedSet<E> extends ImmutableSortedSet<E> {
   @Override
   public UnmodifiableIterator<E> descendingIterator() {
     return elements.reverse().iterator();
+  }
+
+  @Override
+  public Spliterator<E> spliterator() {
+    return asList().spliterator();
+  }
+
+  @Override
+  public void forEach(Consumer<? super E> action) {
+    elements.forEach(action);
   }
 
   @Override
@@ -179,7 +189,7 @@ final class RegularImmutableSortedSet<E> extends ImmutableSortedSet<E> {
         return false; // concurrent change to other set
       }
     }
-    return this.containsAll(that);
+    return containsAll(that);
   }
 
   @Override

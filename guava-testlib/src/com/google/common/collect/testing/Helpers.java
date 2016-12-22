@@ -23,10 +23,6 @@ import static junit.framework.Assert.assertTrue;
 
 import com.google.common.annotations.GwtCompatible;
 import com.google.common.annotations.GwtIncompatible;
-
-import junit.framework.Assert;
-import junit.framework.AssertionFailedError;
-
 import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -41,6 +37,8 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import junit.framework.Assert;
+import junit.framework.AssertionFailedError;
 
 @GwtCompatible(emulated = true)
 public class Helpers {
@@ -79,7 +77,7 @@ public class Helpers {
   private static boolean isEmpty(Iterable<?> iterable) {
     return iterable instanceof Collection
         ? ((Collection<?>) iterable).isEmpty()
-        : iterable.iterator().hasNext();
+        : !iterable.iterator().hasNext();
   }
 
   public static void assertEmpty(Iterable<?> iterable) {
@@ -284,12 +282,14 @@ public class Helpers {
    * the given {@code comparator}.
    *
    * <p>In detail, this method asserts
+   *
    * <ul>
-   * <li><i>reflexivity</i>: {@code comparator.compare(t, t) = 0} for all {@code t} in
-   * {@code valuesInExpectedOrder}; and
-   * <li><i>consistency</i>: {@code comparator.compare(ti, tj) < 0} and
-   * {@code comparator.compare(tj, ti) > 0} for {@code i < j}, where
-   * {@code ti = valuesInExpectedOrder.get(i)} and {@code tj = valuesInExpectedOrder.get(j)}.
+   *   <li><i>reflexivity</i>: {@code comparator.compare(t, t) = 0} for all {@code t} in {@code
+   *       valuesInExpectedOrder}; and
+   *   <li><i>consistency</i>: {@code comparator.compare(ti, tj) < 0} and {@code
+   *       comparator.compare(tj, ti) > 0} for {@code i < j}, where {@code ti =
+   *       valuesInExpectedOrder.get(i)} and {@code tj = valuesInExpectedOrder.get(j)}.
+   * </ul>
    */
   public static <T> void testComparator(
       Comparator<? super T> comparator, List<T> valuesInExpectedOrder) {
@@ -314,6 +314,7 @@ public class Helpers {
     }
   }
 
+  @SuppressWarnings({"SelfComparison", "SelfEquals"})
   public static <T extends Comparable<? super T>> void testCompareToAndEquals(
       List<T> valuesInExpectedOrder) {
     // This does an O(n^2) test of all pairs of values in both orders

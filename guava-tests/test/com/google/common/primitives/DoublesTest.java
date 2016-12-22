@@ -26,14 +26,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.testing.Helpers;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.SerializableTester;
-
-import junit.framework.TestCase;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import junit.framework.TestCase;
 
 /**
  * Unit test for {@link Doubles}.
@@ -221,6 +219,25 @@ public class DoublesTest extends TestCase {
     assertEquals(-0.0, Doubles.min(0.0, -0.0));
     assertEquals(LEAST, Doubles.min(NUMBERS));
     assertTrue(Double.isNaN(Doubles.min(VALUES)));
+  }
+
+  public void testConstrainToRange() {
+    double tolerance = 1e-10;
+    assertEquals(
+        (double) 1, Doubles.constrainToRange((double) 1, (double) 0, (double) 5), tolerance);
+    assertEquals(
+        (double) 1, Doubles.constrainToRange((double) 1, (double) 1, (double) 5), tolerance);
+    assertEquals(
+        (double) 3, Doubles.constrainToRange((double) 1, (double) 3, (double) 5), tolerance);
+    assertEquals(
+        (double) -1, Doubles.constrainToRange((double) 0, (double) -5, (double) -1), tolerance);
+    assertEquals(
+        (double) 2, Doubles.constrainToRange((double) 5, (double) 2, (double) 2), tolerance);
+    try {
+      Doubles.constrainToRange((double) 1, (double) 3, (double) 2);
+      fail();
+    } catch (IllegalArgumentException expected) {
+    }
   }
 
   public void testConcat() {

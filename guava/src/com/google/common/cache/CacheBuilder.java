@@ -29,7 +29,6 @@ import com.google.common.base.Ticker;
 import com.google.common.cache.AbstractCache.SimpleStatsCounter;
 import com.google.common.cache.AbstractCache.StatsCounter;
 import com.google.common.cache.LocalCache.Strength;
-
 import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
 import java.util.ConcurrentModificationException;
@@ -37,7 +36,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import javax.annotation.CheckReturnValue;
 
 /**
@@ -606,7 +604,7 @@ public final class CacheBuilder<K, V> {
    * has elapsed after the entry's creation, or the most recent replacement of its value.
    *
    * <p>When {@code duration} is zero, this method hands off to {@link #maximumSize(long)
-   * maximumSize}{@code (0)}, ignoring any otherwise-specificed maximum size or weight. This can be
+   * maximumSize}{@code (0)}, ignoring any otherwise-specified maximum size or weight. This can be
    * useful in testing, or to disable caching temporarily without a code change.
    *
    * <p>Expired entries may be counted in {@link Cache#size}, but will never be visible to read or
@@ -642,7 +640,7 @@ public final class CacheBuilder<K, V> {
    * on the collection-views of {@link Cache#asMap}.
    *
    * <p>When {@code duration} is zero, this method hands off to {@link #maximumSize(long)
-   * maximumSize}{@code (0)}, ignoring any otherwise-specificed maximum size or weight. This can be
+   * maximumSize}{@code (0)}, ignoring any otherwise-specified maximum size or weight. This can be
    * useful in testing, or to disable caching temporarily without a code change.
    *
    * <p>Expired entries may be counted in {@link Cache#size}, but will never be visible to read or

@@ -29,13 +29,11 @@ import com.google.common.annotations.GwtCompatible;
 import com.google.common.annotations.GwtIncompatible;
 import com.google.common.collect.Iterables;
 import com.google.common.testing.NullPointerTester;
-
-import junit.framework.TestCase;
-
 import java.security.Permission;
 import java.security.Policy;
 import java.security.ProtectionDomain;
 import java.util.List;
+import junit.framework.TestCase;
 
 /**
  * Unit test for {@link Throwables}.
@@ -620,6 +618,23 @@ public class ThrowablesTest extends TestCase {
       Throwables.getCausalChain(null);
       fail("Should have throw NPE");
     } catch (NullPointerException expected) {
+    }
+  }
+
+  @GwtIncompatible // Throwables.getCauseAs(Throwable, Class)
+  public void testGetCauseAs() {
+    SomeCheckedException cause = new SomeCheckedException();
+    SomeChainingException thrown = new SomeChainingException(cause);
+
+    assertThat(thrown.getCause()).isSameAs(cause);
+    assertThat(Throwables.getCauseAs(thrown, SomeCheckedException.class)).isSameAs(cause);
+    assertThat(Throwables.getCauseAs(thrown, Exception.class)).isSameAs(cause);
+
+    try {
+      Throwables.getCauseAs(thrown, IllegalStateException.class);
+      fail("Should have thrown CCE");
+    } catch (ClassCastException expected) {
+      assertThat(expected.getCause()).isSameAs(thrown);
     }
   }
 

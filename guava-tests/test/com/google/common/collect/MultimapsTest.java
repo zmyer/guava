@@ -19,6 +19,7 @@ package com.google.common.collect;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Maps.immutableEntry;
 import static com.google.common.collect.Sets.newHashSet;
+import static com.google.common.collect.testing.Helpers.mapEntry;
 import static com.google.common.collect.testing.Helpers.nefariousMapEntry;
 import static com.google.common.collect.testing.IteratorFeature.MODIFIABLE;
 import static com.google.common.truth.Truth.assertThat;
@@ -26,6 +27,7 @@ import static java.util.Arrays.asList;
 
 import com.google.common.annotations.GwtCompatible;
 import com.google.common.annotations.GwtIncompatible;
+import com.google.common.base.Equivalence;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Predicates;
@@ -33,11 +35,10 @@ import com.google.common.base.Supplier;
 import com.google.common.collect.Maps.EntryTransformer;
 import com.google.common.collect.testing.IteratorTester;
 import com.google.common.collect.testing.google.UnmodifiableCollectionTests;
+import com.google.common.testing.CollectorTester;
+import com.google.common.testing.EqualsTester;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.SerializableTester;
-
-import junit.framework.TestCase;
-
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collection;
@@ -56,8 +57,11 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeSet;
-
+import java.util.function.BiPredicate;
+import java.util.stream.Collector;
+import java.util.stream.Stream;
 import javax.annotation.Nullable;
+import junit.framework.TestCase;
 
 /**
  * Unit test for {@code Multimaps}.
@@ -69,6 +73,57 @@ public class MultimapsTest extends TestCase {
 
   private static final Comparator<Integer> INT_COMPARATOR =
       Ordering.<Integer>natural().reverse().nullsFirst();
+  
+  public void testMultimapCollectorGenerics() {
+    ListMultimap<Integer, String> unused =
+        Stream.of("foo", "bar", "quux")
+            .collect(
+                Multimaps.toMultimap(
+                    String::length, s -> s, MultimapBuilder.treeKeys().arrayListValues()::build));
+  }
+
+  public void testToMultimap() {
+    Collector<Entry<String, Integer>, ?, TreeMultimap<String, Integer>> collector =
+        Multimaps.toMultimap(Entry::getKey, Entry::getValue, TreeMultimap::create);
+    BiPredicate<Multimap<?, ?>, Multimap<?, ?>> equivalence =
+        Equivalence.equals()
+            .onResultOf((Multimap<?, ?> mm) -> ImmutableList.copyOf(mm.asMap().entrySet()))
+            .and(Equivalence.equals());
+    TreeMultimap<String, Integer> empty = TreeMultimap.create();
+    TreeMultimap<String, Integer> filled = TreeMultimap.create();
+    filled.put("a", 1);
+    filled.put("a", 2);
+    filled.put("b", 2);
+    filled.put("c", 3);
+    CollectorTester.of(collector, equivalence)
+        .expectCollects(empty)
+        .expectCollects(
+            filled, mapEntry("a", 1), mapEntry("a", 2), mapEntry("b", 2), mapEntry("c", 3));
+  }
+
+  public void testFlatteningToMultimap() {
+    Collector<String, ?, ListMultimap<Character, Character>> collector =
+        Multimaps.flatteningToMultimap(
+            str -> str.charAt(0),
+            str -> str.substring(1).chars().mapToObj(c -> (char) c),
+            MultimapBuilder.linkedHashKeys().arrayListValues()::build);
+    BiPredicate<Multimap<?, ?>, Multimap<?, ?>> equivalence =
+        Equivalence.equals()
+            .onResultOf((Multimap<?, ?> mm) -> ImmutableList.copyOf(mm.asMap().entrySet()))
+            .and(Equivalence.equals());
+    ListMultimap<Character, Character> empty =
+        MultimapBuilder.linkedHashKeys().arrayListValues().build();
+    ListMultimap<Character, Character> filled =
+        MultimapBuilder.linkedHashKeys().arrayListValues().build();
+    filled.putAll('b', Arrays.asList('a', 'n', 'a', 'n', 'a'));
+    filled.putAll('a', Arrays.asList('p', 'p', 'l', 'e'));
+    filled.putAll('c', Arrays.asList('a', 'r', 'r', 'o', 't'));
+    filled.putAll('a', Arrays.asList('s', 'p', 'a', 'r', 'a', 'g', 'u', 's'));
+    filled.putAll('c', Arrays.asList('h', 'e', 'r', 'r', 'y'));
+    CollectorTester.of(collector, equivalence)
+        .expectCollects(empty)
+        .expectCollects(filled, "banana", "apple", "carrot", "asparagus", "cherry");
+  }
 
   @SuppressWarnings("deprecation")
   public void testUnmodifiableListMultimapShortCircuit() {
@@ -402,10 +457,10 @@ public class MultimapsTest extends TestCase {
     multimap.put("foo", 1);
     multimap.put("bar", 2);
     Multimap<String, Integer> multimapView = Multimaps.forMap(map);
-    assertTrue(multimap.equals(multimapView));
-    assertTrue(multimapView.equals(multimap));
-    assertTrue(multimapView.equals(multimapView));
-    assertFalse(multimapView.equals(map));
+    new EqualsTester()
+        .addEqualityGroup(multimap, multimapView)
+        .addEqualityGroup(map)
+        .testEquals();
     Multimap<String, Integer> multimap2 = HashMultimap.create();
     multimap2.put("foo", 1);
     assertFalse(multimapView.equals(multimap2));
@@ -918,35 +973,35 @@ public class MultimapsTest extends TestCase {
   }
 
   private static void foo(Object o) {}
-  
+
   public void testFilteredKeysSetMultimapReplaceValues() {
     SetMultimap<String, Integer> multimap = LinkedHashMultimap.create();
     multimap.put("foo", 1);
     multimap.put("bar", 2);
     multimap.put("baz", 3);
     multimap.put("bar", 4);
-    
+
     SetMultimap<String, Integer> filtered = Multimaps.filterKeys(
         multimap, Predicates.in(ImmutableSet.of("foo", "bar")));
-    
+
     assertEquals(
         ImmutableSet.of(),
         filtered.replaceValues("baz", ImmutableSet.<Integer>of()));
-    
+
     try {
       filtered.replaceValues("baz", ImmutableSet.of(5));
       fail("Expected IllegalArgumentException");
     } catch (IllegalArgumentException expected) {
     }
   }
-  
+
   public void testFilteredKeysSetMultimapGetBadValue() {
     SetMultimap<String, Integer> multimap = LinkedHashMultimap.create();
     multimap.put("foo", 1);
     multimap.put("bar", 2);
     multimap.put("baz", 3);
     multimap.put("bar", 4);
-    
+
     SetMultimap<String, Integer> filtered = Multimaps.filterKeys(
         multimap, Predicates.in(ImmutableSet.of("foo", "bar")));
     Set<Integer> bazSet = filtered.get("baz");
@@ -962,14 +1017,14 @@ public class MultimapsTest extends TestCase {
     } catch (IllegalArgumentException expected) {
     }
   }
-  
+
   public void testFilteredKeysListMultimapGetBadValue() {
     ListMultimap<String, Integer> multimap = ArrayListMultimap.create();
     multimap.put("foo", 1);
     multimap.put("bar", 2);
     multimap.put("baz", 3);
     multimap.put("bar", 4);
-    
+
     ListMultimap<String, Integer> filtered = Multimaps.filterKeys(
         multimap, Predicates.in(ImmutableSet.of("foo", "bar")));
     List<Integer> bazList = filtered.get("baz");

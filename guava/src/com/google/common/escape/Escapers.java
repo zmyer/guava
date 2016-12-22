@@ -19,10 +19,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.annotations.Beta;
 import com.google.common.annotations.GwtCompatible;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-
 import java.util.HashMap;
 import java.util.Map;
-
 import javax.annotation.Nullable;
 
 /**
@@ -121,7 +119,7 @@ public final class Escapers {
      * replacement. If {@code unsafeReplacement} is {@code null} then no replacement will occur, if
      * it is {@code ""} then the unsafe characters are removed from the output.
      *
-     * @param unsafeReplacement the string to replace unsafe chracters
+     * @param unsafeReplacement the string to replace unsafe characters
      * @return the builder instance
      */
     @CanIgnoreReturnValue

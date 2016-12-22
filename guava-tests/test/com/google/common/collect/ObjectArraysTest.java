@@ -21,12 +21,10 @@ import static com.google.common.truth.Truth.assertThat;
 import com.google.common.annotations.GwtCompatible;
 import com.google.common.annotations.GwtIncompatible;
 import com.google.common.testing.NullPointerTester;
-
-import junit.framework.TestCase;
-
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
+import junit.framework.TestCase;
 
 /**
  * Unit test for {@code ObjectArrays}.
@@ -152,8 +150,8 @@ public class ObjectArraysTest extends TestCase {
 
   private void doTestToArrayImpl2(List<Integer> list, Integer[] array1,
       boolean expectModify) {
-    Integer[] starting = ObjectArrays.arraysCopyOf(array1, array1.length);
-    Integer[] array2 = ObjectArrays.arraysCopyOf(array1, array1.length);
+    Integer[] starting = Arrays.copyOf(array1, array1.length);
+    Integer[] array2 = Arrays.copyOf(array1, array1.length);
     Object[] reference = list.toArray(array1);
 
     Object[] target = ObjectArrays.toArrayImpl(list, array2);

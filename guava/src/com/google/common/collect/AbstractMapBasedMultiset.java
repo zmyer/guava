@@ -25,7 +25,6 @@ import com.google.common.annotations.GwtCompatible;
 import com.google.common.annotations.GwtIncompatible;
 import com.google.common.primitives.Ints;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-
 import java.io.InvalidObjectException;
 import java.io.ObjectStreamException;
 import java.io.Serializable;
@@ -33,7 +32,7 @@ import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-
+import java.util.function.ObjIntConsumer;
 import javax.annotation.Nullable;
 
 /**
@@ -47,7 +46,7 @@ import javax.annotation.Nullable;
  */
 @GwtCompatible(emulated = true)
 abstract class AbstractMapBasedMultiset<E> extends AbstractMultiset<E> implements Serializable {
-
+  // TODO(lowasser): consider overhauling this back to Map<E, Integer>
   private transient Map<E, Count> backingMap;
 
   /*
@@ -125,6 +124,11 @@ abstract class AbstractMapBasedMultiset<E> extends AbstractMultiset<E> implement
         toRemove = null;
       }
     };
+  }
+
+  @Override public void forEachEntry(ObjIntConsumer<? super E> action) {
+    checkNotNull(action);
+    backingMap.forEach((element, count) -> action.accept(element, count.get()));
   }
 
   @Override

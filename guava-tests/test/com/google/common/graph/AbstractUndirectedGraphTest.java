@@ -17,21 +17,17 @@
 package com.google.common.graph;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 import com.google.common.testing.EqualsTester;
-
 import org.junit.After;
 import org.junit.Test;
 
 /**
  * Abstract base class for testing undirected implementations of the {@link Graph} interface.
  *
- * <p>This class is responsible for testing that an undirected implementation of {@link Graph}
- * is correctly handling undirected edges.  Implementation-dependent test cases are left to
- * subclasses. Test cases that do not require the graph to be undirected are found in superclasses.
+ * <p>This class is responsible for testing that an undirected implementation of {@link Graph} is
+ * correctly handling undirected edges. Implementation-dependent test cases are left to subclasses.
+ * Test cases that do not require the graph to be undirected are found in superclasses.
  */
 public abstract class AbstractUndirectedGraphTest extends AbstractGraphTest {
 
@@ -39,38 +35,38 @@ public abstract class AbstractUndirectedGraphTest extends AbstractGraphTest {
   public void validateUndirectedEdges() {
     for (Integer node : graph.nodes()) {
       new EqualsTester()
-          .addEqualityGroup(graph.predecessors(node), graph.successors(node),
-              graph.adjacentNodes(node))
+          .addEqualityGroup(
+              graph.predecessors(node), graph.successors(node), graph.adjacentNodes(node))
           .testEquals();
     }
   }
 
   @Test
   public void predecessors_oneEdge() {
-    addEdge(N1, N2);
+    putEdge(N1, N2);
     assertThat(graph.predecessors(N2)).containsExactly(N1);
     assertThat(graph.predecessors(N1)).containsExactly(N2);
   }
 
   @Test
   public void successors_oneEdge() {
-    addEdge(N1, N2);
+    putEdge(N1, N2);
     assertThat(graph.successors(N1)).containsExactly(N2);
     assertThat(graph.successors(N2)).containsExactly(N1);
   }
 
   @Test
   public void inDegree_oneEdge() {
-    addEdge(N1, N2);
-    assertEquals(1, graph.inDegree(N2));
-    assertEquals(1, graph.inDegree(N1));
+    putEdge(N1, N2);
+    assertThat(graph.inDegree(N2)).isEqualTo(1);
+    assertThat(graph.inDegree(N1)).isEqualTo(1);
   }
 
   @Test
   public void outDegree_oneEdge() {
-    addEdge(N1, N2);
-    assertEquals(1, graph.outDegree(N1));
-    assertEquals(1, graph.outDegree(N2));
+    putEdge(N1, N2);
+    assertThat(graph.outDegree(N1)).isEqualTo(1);
+    assertThat(graph.outDegree(N2)).isEqualTo(1);
   }
 
   // Element Mutation
@@ -81,22 +77,23 @@ public abstract class AbstractUndirectedGraphTest extends AbstractGraphTest {
     // modifications to proxy methods)
     addNode(N1);
     addNode(N2);
-    assertTrue(addEdge(N1, N2));
+    assertThat(putEdge(N1, N2)).isTrue();
   }
 
   @Test
   public void addEdge_existingEdgeBetweenSameNodes() {
-    addEdge(N1, N2);
-    assertFalse(addEdge(N2, N1));
+    putEdge(N1, N2);
+    assertThat(putEdge(N2, N1)).isFalse();
   }
 
   @Test
-  public void removeEdge_existingEdge() {
-    addEdge(N1, N2);
-    assertThat(graph.successors(N1)).containsExactly(N2);
-    assertThat(graph.predecessors(N2)).containsExactly(N1);
-    assertTrue(graph.removeEdge(N1, N2));
-    assertThat(graph.successors(N1)).isEmpty();
-    assertThat(graph.predecessors(N2)).isEmpty();
+  public void removeEdge_antiparallelEdges() {
+    putEdge(N1, N2);
+    putEdge(N2, N1); // no-op
+
+    assertThat(graph.removeEdge(N1, N2)).isTrue();
+    assertThat(graph.adjacentNodes(N1)).isEmpty();
+    assertThat(graph.edges()).isEmpty();
+    assertThat(graph.removeEdge(N2, N1)).isFalse();
   }
 }

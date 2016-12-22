@@ -22,7 +22,6 @@ import static com.google.common.base.Preconditions.checkPositionIndexes;
 import com.google.common.annotations.Beta;
 import com.google.common.annotations.GwtCompatible;
 import com.google.common.base.Converter;
-
 import java.io.Serializable;
 import java.util.AbstractList;
 import java.util.Arrays;
@@ -31,7 +30,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.RandomAccess;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 
@@ -51,6 +49,8 @@ public final class Longs {
 
   /**
    * The number of bytes required to represent a primitive {@code long} value.
+   *
+   * <p><b>Java 8 users:</b> use {@link Long#BYTES} instead.
    */
   public static final int BYTES = Long.SIZE / Byte.SIZE;
 
@@ -68,6 +68,8 @@ public final class Longs {
    * <p>This method always return the value specified by {@link Long#hashCode()} in java, which
    * might be different from {@code ((Long) value).hashCode()} in GWT because
    * {@link Long#hashCode()} in GWT does not obey the JRE contract.
+   *
+   * <p><b>Java 8 users:</b> use {@link Long#hashCode(long)} instead.
    *
    * @param value a primitive {@code long} value
    * @return a hash code for the value
@@ -219,6 +221,25 @@ public final class Longs {
       }
     }
     return max;
+  }
+
+  /**
+   * Returns the value nearest to {@code value} which is within the closed range {@code [min..max]}.
+   *
+   * <p>If {@code value} is within the range {@code [min..max]}, {@code value} is returned
+   * unchanged. If {@code value} is less than {@code min}, {@code min} is returned, and if
+   * {@code value} is greater than {@code max}, {@code max} is returned.
+   *
+   * @param value the {@code long} value to constrain
+   * @param min the lower bound (inclusive) of the range to constrain {@code value} to
+   * @param max the upper bound (inclusive) of the range to constrain {@code value} to
+   * @throws IllegalArgumentException if {@code min > max}
+   * @since 21.0
+   */
+  @Beta
+  public static long constrainToRange(long value, long min, long max) {
+    checkArgument(min <= max, "min (%s) must be less than or equal to max (%s)", min, max);
+    return Math.min(Math.max(value, min), max);
   }
 
   /**
@@ -696,11 +717,7 @@ public final class Longs {
     }
 
     long[] toLongArray() {
-      // Arrays.copyOfRange() is not available under GWT
-      int size = size();
-      long[] result = new long[size];
-      System.arraycopy(array, start, result, 0, size);
-      return result;
+      return Arrays.copyOfRange(array, start, end);
     }
 
     private static final long serialVersionUID = 0;

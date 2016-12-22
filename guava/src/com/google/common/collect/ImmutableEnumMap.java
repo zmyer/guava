@@ -19,10 +19,10 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.annotations.GwtCompatible;
 import com.google.common.collect.ImmutableMap.IteratorBasedImmutableMap;
-
 import java.io.Serializable;
 import java.util.EnumMap;
-
+import java.util.Spliterator;
+import java.util.function.BiConsumer;
 import javax.annotation.Nullable;
 
 /**
@@ -59,6 +59,11 @@ final class ImmutableEnumMap<K extends Enum<K>, V> extends IteratorBasedImmutabl
   }
 
   @Override
+  Spliterator<K> keySpliterator() {
+    return delegate.keySet().spliterator();
+  }
+
+  @Override
   public int size() {
     return delegate.size();
   }
@@ -87,6 +92,15 @@ final class ImmutableEnumMap<K extends Enum<K>, V> extends IteratorBasedImmutabl
   @Override
   UnmodifiableIterator<Entry<K, V>> entryIterator() {
     return Maps.unmodifiableEntryIterator(delegate.entrySet().iterator());
+  }
+
+  @Override
+  Spliterator<Entry<K, V>> entrySpliterator() {
+    return CollectSpliterators.map(delegate.entrySet().spliterator(), Maps::unmodifiableEntry);
+  }
+  
+  @Override public void forEach(BiConsumer<? super K, ? super V> action) {
+    delegate.forEach(action);
   }
 
   @Override

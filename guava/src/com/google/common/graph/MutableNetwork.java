@@ -18,11 +18,13 @@ package com.google.common.graph;
 
 import com.google.common.annotations.Beta;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
+import com.google.errorprone.annotations.CompatibleWith;
 
 /**
- * A subtype of {@link Network} which permits mutations.
- * Users should generally use the {@link Network} interface where possible.
+ * A subinterface of {@link Network} which adds mutation methods. When mutation is not required,
+ * users should prefer the {@link Network} interface.
  *
+ * @author James Sexton
  * @author Joshua O'Madadhain
  * @param <N> Node parameter type
  * @param <E> Edge parameter type
@@ -32,58 +34,50 @@ import com.google.errorprone.annotations.CanIgnoreReturnValue;
 public interface MutableNetwork<N, E> extends Network<N, E> {
 
   /**
-   * Adds {@code node} to this graph (optional operation).
+   * Adds {@code node} if it is not already present.
    *
-   * <p><b>Nodes must be unique</b>, just as {@code Map} keys must be; they must also be non-null.
+   * <p><b>Nodes must be unique</b>, just as {@code Map} keys must be. They must also be non-null.
    *
-   * @return {@code true} iff the graph was modified as a result of this call
-   * @throws UnsupportedOperationException if the add operation is not supported by this graph
+   * @return {@code true} if the network was modified as a result of this call
    */
   @CanIgnoreReturnValue
   boolean addNode(N node);
 
   /**
-   * Adds {@code edge} to this graph, connecting {@code node1} to {@code node2}
-   * (optional operation).
+   * Adds {@code edge} connecting {@code nodeU} to {@code nodeV}. In an undirected network, the edge
+   * will also connect {@code nodeV} to {@code nodeU}.
    *
-   * <p><b>Edges must be unique</b>, just as {@code Map} keys must be; they must also be non-null.
+   * <p><b>Edges must be unique</b>, just as {@code Map} keys must be. They must also be non-null.
    *
-   * <p>If {@code edge} already connects {@code node1} to {@code node2} in this graph
-   * (in the specified order if order is significant, as for directed graphs, else in any order),
-   * then this method will have no effect and will return {@code false}.
+   * <p>Behavior if {@code nodeU} and {@code nodeV} are not already present in this network is
+   * implementation-dependent. Suggested behaviors include (a) silently {@link #addNode(Object)
+   * adding} {@code nodeU} and {@code nodeV} to the network (this is the behavior of the default
+   * implementations) or (b) throwing {@code IllegalArgumentException}.
    *
-   * <p>Behavior if {@code node1} and {@code node2} are not already elements of the graph is
-   * unspecified. Suggested behaviors include (a) silently adding {@code node1} and {@code node2}
-   * to the graph or (b) throwing {@code IllegalArgumentException}.
+   * <p>If {@code edge} already connects {@code nodeU} to {@code nodeV} (in the specified order if
+   * this network {@link #isDirected()}, else in any order), then this method will have no effect.
    *
-   * @return {@code true} iff the graph was modified as a result of this call
-   * @throws IllegalArgumentException if {@code edge} already exists and connects nodes other than
-   *     {@code node1} and {@code node2}, or if the graph is not a multigraph and {@code node1} is
-   *     already connected to {@code node2}
-   * @throws UnsupportedOperationException if the add operation is not supported by this graph
+   * @return {@code true} if the network was modified as a result of this call
+   * @throws IllegalArgumentException if {@code edge} already exists and does not connect {@code
+   *     nodeU} to {@code nodeV}, or if the introduction of the edge would violate {@link
+   *     #allowsParallelEdges()} or {@link #allowsSelfLoops()}
    */
   @CanIgnoreReturnValue
-  boolean addEdge(E edge, N node1, N node2);
+  boolean addEdge(N nodeU, N nodeV, E edge);
 
   /**
-   * Removes {@code node} from this graph, if it is present (optional operation).
-   * In general, all edges incident to {@code node} in this graph will also be removed.
-   * (This is not true for hyperedges.)
+   * Removes {@code node} if it is present; all edges incident to {@code node} will also be removed.
    *
-   * @return {@code true} iff the graph was modified as a result of this call
-   * @throws UnsupportedOperationException if the remove operation is not supported by this graph
+   * @return {@code true} if the network was modified as a result of this call
    */
   @CanIgnoreReturnValue
-  boolean removeNode(Object node);
+  boolean removeNode(@CompatibleWith("N") Object node);
 
   /**
-   * Removes {@code edge} from this graph, if it is present (optional operation).
-   * In general, nodes incident to {@code edge} are unaffected (although implementations may choose
-   * to disallow certain configurations, e.g., isolated nodes).
+   * Removes {@code edge} from this network, if it is present.
    *
-   * @return {@code true} iff the graph was modified as a result of this call
-   * @throws UnsupportedOperationException if the remove operation is not supported by this graph
+   * @return {@code true} if the network was modified as a result of this call
    */
   @CanIgnoreReturnValue
-  boolean removeEdge(Object edge);
+  boolean removeEdge(@CompatibleWith("E") Object edge);
 }

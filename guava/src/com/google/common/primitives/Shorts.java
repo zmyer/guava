@@ -23,7 +23,6 @@ import com.google.common.annotations.Beta;
 import com.google.common.annotations.GwtCompatible;
 import com.google.common.annotations.GwtIncompatible;
 import com.google.common.base.Converter;
-
 import java.io.Serializable;
 import java.util.AbstractList;
 import java.util.Arrays;
@@ -49,6 +48,8 @@ public final class Shorts {
 
   /**
    * The number of bytes required to represent a primitive {@code short} value.
+   *
+   * <p><b>Java 8 users:</b> use {@link Short#BYTES} instead.
    */
   public static final int BYTES = Short.SIZE / Byte.SIZE;
 
@@ -62,6 +63,8 @@ public final class Shorts {
   /**
    * Returns a hash code for {@code value}; equal to the result of invoking
    * {@code ((Short) value).hashCode()}.
+   *
+   * <p><b>Java 8 users:</b> use {@link Short#hashCode(short)} instead.
    *
    * @param value a primitive {@code short} value
    * @return a hash code for the value
@@ -80,10 +83,7 @@ public final class Shorts {
    */
   public static short checkedCast(long value) {
     short result = (short) value;
-    if (result != value) {
-      // don't use checkArgument here, to avoid boxing
-      throw new IllegalArgumentException("Out of range: " + value);
-    }
+    checkArgument(result == value, "Out of range: %s", value);
     return result;
   }
 
@@ -247,6 +247,25 @@ public final class Shorts {
       }
     }
     return max;
+  }
+
+  /**
+   * Returns the value nearest to {@code value} which is within the closed range {@code [min..max]}.
+   *
+   * <p>If {@code value} is within the range {@code [min..max]}, {@code value} is returned
+   * unchanged. If {@code value} is less than {@code min}, {@code min} is returned, and if
+   * {@code value} is greater than {@code max}, {@code max} is returned.
+   *
+   * @param value the {@code short} value to constrain
+   * @param min the lower bound (inclusive) of the range to constrain {@code value} to
+   * @param max the upper bound (inclusive) of the range to constrain {@code value} to
+   * @throws IllegalArgumentException if {@code min > max}
+   * @since 21.0
+   */
+  @Beta
+  public static short constrainToRange(short value, short min, short max) {
+    checkArgument(min <= max, "min (%s) must be less than or equal to max (%s)", min, max);
+    return value < min ? min : value < max ? value : max;
   }
 
   /**
@@ -605,11 +624,7 @@ public final class Shorts {
     }
 
     short[] toShortArray() {
-      // Arrays.copyOfRange() is not available under GWT
-      int size = size();
-      short[] result = new short[size];
-      System.arraycopy(array, start, result, 0, size);
-      return result;
+      return Arrays.copyOfRange(array, start, end);
     }
 
     private static final long serialVersionUID = 0;

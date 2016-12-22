@@ -35,7 +35,6 @@ import com.google.common.annotations.GwtIncompatible;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.primitives.Booleans;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-
 import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.util.Iterator;
@@ -66,14 +65,14 @@ public final class DoubleMath {
         if (x >= 0.0 || isMathematicalInteger(x)) {
           return x;
         } else {
-          return x - 1.0;
+          return (long) x - 1;
         }
 
       case CEILING:
         if (x <= 0.0 || isMathematicalInteger(x)) {
           return x;
         } else {
-          return x + 1.0;
+          return (long) x + 1;
         }
 
       case DOWN:
@@ -83,7 +82,7 @@ public final class DoubleMath {
         if (isMathematicalInteger(x)) {
           return x;
         } else {
-          return x + Math.copySign(1.0, x);
+          return (long) x + (x > 0 ? 1 : -1);
         }
 
       case HALF_EVEN:
@@ -327,19 +326,21 @@ public final class DoubleMath {
   /**
    * Returns {@code true} if {@code a} and {@code b} are within {@code tolerance} of each other.
    *
-   * <p>Technically speaking, this is equivalent to
-   * {@code Math.abs(a - b) <= tolerance || Double.valueOf(a).equals(Double.valueOf(b))}.
+   * <p>Technically speaking, this is equivalent to {@code Math.abs(a - b) <= tolerance ||
+   * Double.valueOf(a).equals(Double.valueOf(b))}.
    *
    * <p>Notable special cases include:
+   *
    * <ul>
-   * <li>All NaNs are fuzzily equal.
-   * <li>If {@code a == b}, then {@code a} and {@code b} are always fuzzily equal.
-   * <li>Positive and negative zero are always fuzzily equal.
-   * <li>If {@code tolerance} is zero, and neither {@code a} nor {@code b} is NaN, then {@code a}
-   *     and {@code b} are fuzzily equal if and only if {@code a == b}.
-   * <li>With {@link Double#POSITIVE_INFINITY} tolerance, all non-NaN values are fuzzily equal.
-   * <li>With finite tolerance, {@code Double.POSITIVE_INFINITY} and {@code
-   *     Double.NEGATIVE_INFINITY} are fuzzily equal only to themselves.
+   *   <li>All NaNs are fuzzily equal.
+   *   <li>If {@code a == b}, then {@code a} and {@code b} are always fuzzily equal.
+   *   <li>Positive and negative zero are always fuzzily equal.
+   *   <li>If {@code tolerance} is zero, and neither {@code a} nor {@code b} is NaN, then {@code a}
+   *       and {@code b} are fuzzily equal if and only if {@code a == b}.
+   *   <li>With {@link Double#POSITIVE_INFINITY} tolerance, all non-NaN values are fuzzily equal.
+   *   <li>With finite tolerance, {@code Double.POSITIVE_INFINITY} and {@code
+   *       Double.NEGATIVE_INFINITY} are fuzzily equal only to themselves.
+   * </ul>
    *
    * <p>This is reflexive and symmetric, but <em>not</em> transitive, so it is <em>not</em> an
    * equivalence relation and <em>not</em> suitable for use in {@link Object#equals}

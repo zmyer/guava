@@ -22,15 +22,13 @@ import com.google.common.base.Converter;
 import com.google.common.collect.testing.Helpers;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.SerializableTester;
-
-import junit.framework.TestCase;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
+import junit.framework.TestCase;
 
 /**
  * Unit test for {@link Shorts}.
@@ -208,6 +206,19 @@ public class ShortsTest extends TestCase {
     assertEquals((short) 0, Shorts.min(
         (short) 8, (short) 6, (short) 7,
         (short) 5, (short) 3, (short) 0, (short) 9));
+  }
+
+  public void testConstrainToRange() {
+    assertEquals((short) 1, Shorts.constrainToRange((short) 1, (short) 0, (short) 5));
+    assertEquals((short) 1, Shorts.constrainToRange((short) 1, (short) 1, (short) 5));
+    assertEquals((short) 3, Shorts.constrainToRange((short) 1, (short) 3, (short) 5));
+    assertEquals((short) -1, Shorts.constrainToRange((short) 0, (short) -5, (short) -1));
+    assertEquals((short) 2, Shorts.constrainToRange((short) 5, (short) 2, (short) 2));
+    try {
+      Shorts.constrainToRange((short) 1, (short) 3, (short) 2);
+      fail();
+    } catch (IllegalArgumentException expected) {
+    }
   }
 
   public void testConcat() {

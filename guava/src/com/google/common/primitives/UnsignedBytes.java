@@ -21,11 +21,9 @@ import com.google.common.annotations.Beta;
 import com.google.common.annotations.GwtIncompatible;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-
-import sun.misc.Unsafe;
-
 import java.nio.ByteOrder;
 import java.util.Comparator;
+import sun.misc.Unsafe;
 
 /**
  * Static utility methods pertaining to {@code byte} primitives that interpret values as
@@ -83,10 +81,7 @@ public final class UnsignedBytes {
    */
   @CanIgnoreReturnValue
   public static byte checkedCast(long value) {
-    if ((value >> Byte.SIZE) != 0) {
-      // don't use checkArgument here, to avoid boxing
-      throw new IllegalArgumentException("Out of range: " + value);
-    }
+    checkArgument(value >> Byte.SIZE == 0, "out of range: %s", value);
     return (byte) value;
   }
 

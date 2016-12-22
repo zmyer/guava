@@ -16,36 +16,29 @@
 
 package com.google.common.graph;
 
+import static com.google.common.graph.TestUtil.assertStronglyEquivalent;
+import static com.google.common.graph.TestUtil.sanityCheckSet;
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.testing.EqualsTester;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-
+import java.util.HashSet;
+import java.util.Set;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Abstract base class for testing implementations of {@link Graph} interface. Graph
- * instances created for testing should have Integer node and String edge objects.
+ * Abstract base class for testing implementations of {@link Graph} interface. Graph instances
+ * created for testing should have Integer node and String edge objects.
  *
- * <p>Tests assume the following about the graph implementation:
- * <ul>
- * <li>Parallel edges are not allowed.
- * </ul>
+ * <p>Test cases that should be handled similarly in any graph implementation are included in this
+ * class. For example, testing that {@code nodes()} method returns the set of the nodes in the
+ * graph. The following test cases are left for the subclasses to handle:
  *
- * <p>Test cases that should be handled similarly in any graph implementation are
- * included in this class. For example, testing that {@code nodes()} method returns
- * the set of the nodes in the graph. The following test cases are left for the subclasses
- * to handle:
  * <ul>
- * <li>Test cases related to whether the graph is directed, undirected, mutable,
- *     or immutable.
+ * <li>Test cases related to whether the graph is directed, undirected, mutable, or immutable.
  * <li>Test cases related to the specific implementation of the {@link Graph} interface.
  * </ul>
  *
@@ -68,56 +61,48 @@ public abstract class AbstractGraphTest {
   // here too.
   static final String ERROR_ELEMENT_NOT_IN_GRAPH = "not an element of this graph";
   static final String NODE_STRING = "Node";
-  static final String EDGE_STRING = "Edge";
   static final String ERROR_MODIFIABLE_SET = "Set returned is unexpectedly modifiable";
   static final String ERROR_SELF_LOOP = "self-loops are not allowed";
   static final String ERROR_NODE_NOT_IN_GRAPH =
       "Should not be allowed to pass a node that is not an element of the graph.";
   static final String ERROR_ADDED_SELF_LOOP = "Should not be allowed to add a self-loop edge.";
-  static final String ERROR_ADDED_PARALLEL_EDGE = "Should not be allowed to add a parallel edge.";
 
-  /**
-   * Creates and returns an instance of the graph to be tested.
-   */
+  /** Creates and returns an instance of the graph to be tested. */
   public abstract MutableGraph<Integer> createGraph();
 
   /**
-   * A proxy method that adds the node {@code n} to the graph being tested.
-   * In case of Immutable graph implementations, this method should add {@code n} to the graph
-   * builder and build a new graph with the current builder state.
+   * A proxy method that adds the node {@code n} to the graph being tested. In case of Immutable
+   * graph implementations, this method should add {@code n} to the graph builder and build a new
+   * graph with the current builder state.
    *
    * @return {@code true} iff the graph was modified as a result of this call
-   * TODO(user): Consider changing access modifier to be protected.
    */
   @CanIgnoreReturnValue
-  boolean addNode(Integer n) {
+  protected boolean addNode(Integer n) {
     return graph.addNode(n);
   }
 
   /**
-   * A proxy method that adds the edge {@code e} to the graph
-   * being tested. In case of Immutable graph implementations, this method
-   * should add {@code e} to the graph builder and build a new graph with the current
-   * builder state.
+   * A proxy method that adds the edge {@code e} to the graph being tested. In case of Immutable
+   * graph implementations, this method should add {@code e} to the graph builder and build a new
+   * graph with the current builder state.
    *
-   * <p>This method should be used in tests of specific implementations if you want to
-   * ensure uniform behavior (including side effects) with how edges are added elsewhere
-   * in the tests.  For example, the existing implementations of this method explicitly
-   * add the supplied nodes to the graph, and then call {@code graph.addEdge()} to connect
-   * the edge to the nodes; this is not part of the contract of {@code graph.addEdge()}
-   * and is done for convenience.  In cases where you want to avoid such side effects
-   * (e.g., if you're testing what happens in your implementation if you add an edge
-   * whose end-points don't already exist in the graph), you should <b>not</b> use this
+   * <p>This method should be used in tests of specific implementations if you want to ensure
+   * uniform behavior (including side effects) with how edges are added elsewhere in the tests. For
+   * example, the existing implementations of this method explicitly add the supplied nodes to the
+   * graph, and then call {@code graph.addEdge()} to connect the edge to the nodes; this is not part
+   * of the contract of {@code graph.addEdge()} and is done for convenience. In cases where you want
+   * to avoid such side effects (e.g., if you're testing what happens in your implementation if you
+   * add an edge whose end-points don't already exist in the graph), you should <b>not</b> use this
    * method.
    *
    * @return {@code true} iff the graph was modified as a result of this call
-   * TODO(user): Consider changing access modifier to be protected.
    */
   @CanIgnoreReturnValue
-  boolean addEdge(Integer n1, Integer n2) {
+  protected boolean putEdge(Integer n1, Integer n2) {
     graph.addNode(n1);
     graph.addNode(n2);
-    return graph.addEdge(n1, n2);
+    return graph.putEdge(n1, n2);
   }
 
   @Before
@@ -127,36 +112,62 @@ public abstract class AbstractGraphTest {
 
   @After
   public void validateGraphState() {
-    new EqualsTester().addEqualityGroup(
-        graph,
-        Graphs.copyOf(graph),
-        ImmutableGraph.copyOf(graph)).testEquals();
+    validateGraph(graph);
+  }
+
+  static <N> void validateGraph(Graph<N> graph) {
+    assertStronglyEquivalent(graph, Graphs.copyOf(graph));
+    assertStronglyEquivalent(graph, ImmutableGraph.copyOf(graph));
 
     String graphString = graph.toString();
     assertThat(graphString).contains("isDirected: " + graph.isDirected());
-    // TODO(b/28087289): add test for allowsParallelEdges when supported
     assertThat(graphString).contains("allowsSelfLoops: " + graph.allowsSelfLoops());
 
     int nodeStart = graphString.indexOf("nodes:");
     int edgeStart = graphString.indexOf("edges:");
     String nodeString = graphString.substring(nodeStart, edgeStart);
 
-    for (Integer node : graph.nodes()) {
+    Set<EndpointPair<N>> allEndpointPairs = new HashSet<EndpointPair<N>>();
+
+    for (N node : sanityCheckSet(graph.nodes())) {
       assertThat(nodeString).contains(node.toString());
 
-      for (Integer adjacentNode : graph.adjacentNodes(node)) {
-        assertTrue(graph.predecessors(node).contains(adjacentNode)
-            || graph.successors(node).contains(adjacentNode));
+      if (graph.isDirected()) {
+        assertThat(graph.degree(node)).isEqualTo(graph.inDegree(node) + graph.outDegree(node));
+        assertThat(graph.predecessors(node)).hasSize(graph.inDegree(node));
+        assertThat(graph.successors(node)).hasSize(graph.outDegree(node));
+      } else {
+        int selfLoopCount = graph.adjacentNodes(node).contains(node) ? 1 : 0;
+        assertThat(graph.degree(node)).isEqualTo(graph.adjacentNodes(node).size() + selfLoopCount);
+        assertThat(graph.predecessors(node)).isEqualTo(graph.adjacentNodes(node));
+        assertThat(graph.successors(node)).isEqualTo(graph.adjacentNodes(node));
+        assertThat(graph.inDegree(node)).isEqualTo(graph.degree(node));
+        assertThat(graph.outDegree(node)).isEqualTo(graph.degree(node));
       }
 
-      for (Integer predecessor : graph.predecessors(node)) {
+      for (N adjacentNode : sanityCheckSet(graph.adjacentNodes(node))) {
+        if (!graph.allowsSelfLoops()) {
+          assertThat(node).isNotEqualTo(adjacentNode);
+        }
+        assertThat(
+                graph.predecessors(node).contains(adjacentNode)
+                    || graph.successors(node).contains(adjacentNode))
+            .isTrue();
+      }
+
+      for (N predecessor : sanityCheckSet(graph.predecessors(node))) {
         assertThat(graph.successors(predecessor)).contains(node);
       }
 
-      for (Integer successor : graph.successors(node)) {
+      for (N successor : sanityCheckSet(graph.successors(node))) {
+        allEndpointPairs.add(EndpointPair.of(graph, node, successor));
         assertThat(graph.predecessors(successor)).contains(node);
       }
     }
+
+    sanityCheckSet(graph.edges());
+    assertThat(graph.edges()).doesNotContain(EndpointPair.of(graph, new Object(), new Object()));
+    assertThat(graph.edges()).isEqualTo(allEndpointPairs);
   }
 
   /**
@@ -167,22 +178,22 @@ public abstract class AbstractGraphTest {
   public abstract void nodes_checkReturnedSetMutability();
 
   /**
-   * Verifies that the {@code Set} returned by {@code adjacentNodes} has the expected
-   * mutability property (see the {@code Graph} documentation for more information).
+   * Verifies that the {@code Set} returned by {@code adjacentNodes} has the expected mutability
+   * property (see the {@code Graph} documentation for more information).
    */
   @Test
   public abstract void adjacentNodes_checkReturnedSetMutability();
 
   /**
-   * Verifies that the {@code Set} returned by {@code predecessors} has the expected
-   * mutability property (see the {@code Graph} documentation for more information).
+   * Verifies that the {@code Set} returned by {@code predecessors} has the expected mutability
+   * property (see the {@code Graph} documentation for more information).
    */
   @Test
   public abstract void predecessors_checkReturnedSetMutability();
 
   /**
-   * Verifies that the {@code Set} returned by {@code successors} has the expected
-   * mutability property (see the {@code Graph} documentation for more information).
+   * Verifies that the {@code Set} returned by {@code successors} has the expected mutability
+   * property (see the {@code Graph} documentation for more information).
    */
   @Test
   public abstract void successors_checkReturnedSetMutability();
@@ -200,7 +211,7 @@ public abstract class AbstractGraphTest {
 
   @Test
   public void adjacentNodes_oneEdge() {
-    addEdge(N1, N2);
+    putEdge(N1, N2);
     assertThat(graph.adjacentNodes(N1)).containsExactly(N2);
     assertThat(graph.adjacentNodes(N2)).containsExactly(N1);
   }
@@ -255,15 +266,15 @@ public abstract class AbstractGraphTest {
 
   @Test
   public void degree_oneEdge() {
-    addEdge(N1, N2);
-    assertEquals(1, graph.degree(N1));
-    assertEquals(1, graph.degree(N2));
+    putEdge(N1, N2);
+    assertThat(graph.degree(N1)).isEqualTo(1);
+    assertThat(graph.degree(N2)).isEqualTo(1);
   }
 
   @Test
   public void degree_isolatedNode() {
     addNode(N1);
-    assertEquals(0, graph.degree(N1));
+    assertThat(graph.degree(N1)).isEqualTo(0);
   }
 
   @Test
@@ -279,7 +290,7 @@ public abstract class AbstractGraphTest {
   @Test
   public void inDegree_isolatedNode() {
     addNode(N1);
-    assertEquals(0, graph.inDegree(N1));
+    assertThat(graph.inDegree(N1)).isEqualTo(0);
   }
 
   @Test
@@ -295,7 +306,7 @@ public abstract class AbstractGraphTest {
   @Test
   public void outDegree_isolatedNode() {
     addNode(N1);
-    assertEquals(0, graph.outDegree(N1));
+    assertThat(graph.outDegree(N1)).isEqualTo(0);
   }
 
   @Test
@@ -310,7 +321,7 @@ public abstract class AbstractGraphTest {
 
   @Test
   public void addNode_newNode() {
-    assertTrue(addNode(N1));
+    assertThat(addNode(N1)).isTrue();
     assertThat(graph.nodes()).contains(N1);
   }
 
@@ -318,43 +329,94 @@ public abstract class AbstractGraphTest {
   public void addNode_existingNode() {
     addNode(N1);
     ImmutableSet<Integer> nodes = ImmutableSet.copyOf(graph.nodes());
-    assertFalse(addNode(N1));
+    assertThat(addNode(N1)).isFalse();
     assertThat(graph.nodes()).containsExactlyElementsIn(nodes);
   }
 
   @Test
   public void removeNode_existingNode() {
-    addEdge(N1, N2);
-    addEdge(N4, N1);
-    assertTrue(graph.removeNode(N1));
+    putEdge(N1, N2);
+    putEdge(N4, N1);
+    assertThat(graph.removeNode(N1)).isTrue();
+    assertThat(graph.removeNode(N1)).isFalse();
     assertThat(graph.nodes()).containsExactly(N2, N4);
     assertThat(graph.adjacentNodes(N2)).isEmpty();
     assertThat(graph.adjacentNodes(N4)).isEmpty();
   }
 
   @Test
-  public void removeNode_invalidArgument() {
+  public void removeNode_antiparallelEdges() {
+    putEdge(N1, N2);
+    putEdge(N2, N1);
+
+    assertThat(graph.removeNode(N1)).isTrue();
+    assertThat(graph.nodes()).containsExactly(N2);
+    assertThat(graph.edges()).isEmpty();
+
+    assertThat(graph.removeNode(N2)).isTrue();
+    assertThat(graph.nodes()).isEmpty();
+    assertThat(graph.edges()).isEmpty();
+  }
+
+  @Test
+  public void removeNode_nodeNotPresent() {
+    addNode(N1);
     ImmutableSet<Integer> nodes = ImmutableSet.copyOf(graph.nodes());
-    assertFalse(graph.removeNode(NODE_NOT_IN_GRAPH));
+    assertThat(graph.removeNode(NODE_NOT_IN_GRAPH)).isFalse();
     assertThat(graph.nodes()).containsExactlyElementsIn(nodes);
   }
 
   @Test
+  public void removeNode_queryAfterRemoval() {
+    addNode(N1);
+    @SuppressWarnings("unused")
+    Set<Integer> unused = graph.adjacentNodes(N1); // ensure cache (if any) is populated
+    assertThat(graph.removeNode(N1)).isTrue();
+    try {
+      graph.adjacentNodes(N1);
+      fail(ERROR_NODE_NOT_IN_GRAPH);
+    } catch (IllegalArgumentException e) {
+      assertNodeNotInGraphErrorMessage(e);
+    }
+  }
+
+  @Test
+  public void removeEdge_existingEdge() {
+    putEdge(N1, N2);
+    assertThat(graph.successors(N1)).containsExactly(N2);
+    assertThat(graph.predecessors(N2)).containsExactly(N1);
+    assertThat(graph.removeEdge(N1, N2)).isTrue();
+    assertThat(graph.removeEdge(N1, N2)).isFalse();
+    assertThat(graph.successors(N1)).isEmpty();
+    assertThat(graph.predecessors(N2)).isEmpty();
+  }
+
+  @Test
   public void removeEdge_oneOfMany() {
-    addEdge(N1, N2);
-    addEdge(N1, N3);
-    addEdge(N1, N4);
-    assertTrue(graph.removeEdge(N1, N3));
+    putEdge(N1, N2);
+    putEdge(N1, N3);
+    putEdge(N1, N4);
+    assertThat(graph.removeEdge(N1, N3)).isTrue();
     assertThat(graph.adjacentNodes(N1)).containsExactly(N2, N4);
+  }
+
+  @Test
+  public void removeEdge_nodeNotPresent() {
+    putEdge(N1, N2);
+    assertThat(graph.removeEdge(N1, NODE_NOT_IN_GRAPH)).isFalse();
+    assertThat(graph.successors(N1)).contains(N2);
+  }
+
+  @Test
+  public void removeEdge_edgeNotPresent() {
+    putEdge(N1, N2);
+    addNode(N3);
+    assertThat(graph.removeEdge(N1, N3)).isFalse();
+    assertThat(graph.successors(N1)).contains(N2);
   }
 
   static void assertNodeNotInGraphErrorMessage(Throwable throwable) {
     assertThat(throwable.getMessage()).startsWith(NODE_STRING);
-    assertThat(throwable.getMessage()).contains(ERROR_ELEMENT_NOT_IN_GRAPH);
-  }
-
-  static void assertEdgeNotInGraphErrorMessage(Throwable throwable) {
-    assertThat(throwable.getMessage()).startsWith(EDGE_STRING);
     assertThat(throwable.getMessage()).contains(ERROR_ELEMENT_NOT_IN_GRAPH);
   }
 }

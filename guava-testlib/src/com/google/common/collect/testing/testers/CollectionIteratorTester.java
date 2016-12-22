@@ -30,7 +30,6 @@ import com.google.common.collect.testing.IteratorFeature;
 import com.google.common.collect.testing.IteratorTester;
 import com.google.common.collect.testing.features.CollectionFeature;
 import com.google.common.collect.testing.features.CollectionSize;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -65,8 +64,6 @@ public class CollectionIteratorTester<E> extends AbstractCollectionTester<E> {
     List<E> expected = Helpers.copyToList(getOrderedElements());
     assertEquals("Different ordered iteration", expected, iteratorElements);
   }
-
-  // TODO: switch to DerivedIteratorTestSuiteBuilder
 
   @CollectionFeature.Require(SUPPORTS_ITERATOR_REMOVE)
   @CollectionSize.Require(absent = ZERO)

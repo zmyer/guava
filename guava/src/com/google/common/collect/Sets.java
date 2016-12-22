@@ -27,7 +27,6 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.Collections2.FilteredCollection;
 import com.google.common.math.IntMath;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-
 import java.io.Serializable;
 import java.util.AbstractSet;
 import java.util.Arrays;
@@ -47,7 +46,8 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
-
+import java.util.stream.Collector;
+import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 /**
@@ -136,6 +136,55 @@ public final class Sets {
     }
   }
 
+  private static final class Accumulator<E extends Enum<E>> {
+    static final Collector<Enum<?>, ?, ImmutableSet<? extends Enum<?>>>
+      TO_IMMUTABLE_ENUM_SET =
+          (Collector)
+              Collector.<Enum, Accumulator, ImmutableSet<?>>of(
+                  Accumulator::new,
+                  Accumulator::add,
+                  Accumulator::combine,
+                  Accumulator::toImmutableSet,
+                  Collector.Characteristics.UNORDERED);
+
+    private EnumSet<E> set;
+
+    void add(E e) {
+      if (set == null) {
+        set = EnumSet.of(e);
+      } else {
+        set.add(e);
+      }
+    }
+
+    Accumulator<E> combine(Accumulator<E> other) {
+      if (this.set == null) {
+        return other;
+      } else if (other.set == null) {
+        return this;
+      } else {
+        this.set.addAll(other.set);
+        return this;
+      }
+    }
+
+    ImmutableSet<E> toImmutableSet() {
+      return (set == null) ? ImmutableSet.<E>of() : ImmutableEnumSet.asImmutable(set);
+    }
+  }
+
+  /**
+   * Returns a {@code Collector} that accumulates the input elements into a new {@code ImmutableSet}
+   * with an implementation specialized for enums. Unlike {@link ImmutableSet#toImmutableSet}, the
+   * resulting set will iterate over elements in their enum definition order, not encounter order.
+   *
+   * @since 21.0
+   */
+  @Beta
+  public static <E extends Enum<E>> Collector<E, ?, ImmutableSet<E>> toImmutableEnumSet() {
+    return (Collector) Accumulator.TO_IMMUTABLE_ENUM_SET;
+  }
+
   /**
    * Returns a new, <i>mutable</i> {@code EnumSet} instance containing the given elements in their
    * natural order. This method behaves identically to {@link EnumSet#copyOf(Collection)}, but also
@@ -186,15 +235,15 @@ public final class Sets {
   }
 
   /**
-   * Creates a {@code HashSet} instance, with a high enough initial table size that it <i>should</i>
-   * hold {@code expectedSize} elements without resizing. This behavior cannot be broadly
-   * guaranteed, but it is observed to be true for OpenJDK 1.7. It also can't be guaranteed that the
-   * method isn't inadvertently <i>oversizing</i> the returned set.
+   * Returns a new hash set using the smallest initial table size that can hold {@code expectedSize}
+   * elements without resizing. Note that this is not what {@link HashSet#HashSet(int)} does, but it
+   * is what most users want and expect it to do.
    *
-   * @param expectedSize the number of elements you expect to add to the
-   *        returned set
-   * @return a new, empty {@code HashSet} with enough capacity to hold {@code
-   *         expectedSize} elements without resizing
+   * <p>This behavior can't be broadly guaranteed, but has been tested with OpenJDK 1.7 and 1.8.
+   *
+   * @param expectedSize the number of elements you expect to add to the returned set
+   * @return a new, empty hash set with enough capacity to hold {@code expectedSize} elements
+   *     without resizing
    * @throws IllegalArgumentException if {@code expectedSize} is negative
    */
   public static <E> HashSet<E> newHashSetWithExpectedSize(int expectedSize) {
@@ -574,6 +623,104 @@ public final class Sets {
       set.addAll(this);
       return set;
     }
+
+    /**
+     * Guaranteed to throw an exception and leave the collection unmodified.
+     *
+     * @throws UnsupportedOperationException always
+     * @deprecated Unsupported operation.
+     */
+    @CanIgnoreReturnValue
+    @Deprecated
+    @Override
+    public final boolean add(E e) {
+      throw new UnsupportedOperationException();
+    }
+
+    /**
+     * Guaranteed to throw an exception and leave the collection unmodified.
+     *
+     * @throws UnsupportedOperationException always
+     * @deprecated Unsupported operation.
+     */
+    @CanIgnoreReturnValue
+    @Deprecated
+    @Override
+    public final boolean remove(Object object) {
+      throw new UnsupportedOperationException();
+    }
+
+    /**
+     * Guaranteed to throw an exception and leave the collection unmodified.
+     *
+     * @throws UnsupportedOperationException always
+     * @deprecated Unsupported operation.
+     */
+    @CanIgnoreReturnValue
+    @Deprecated
+    @Override
+    public final boolean addAll(Collection<? extends E> newElements) {
+      throw new UnsupportedOperationException();
+    }
+
+    /**
+     * Guaranteed to throw an exception and leave the collection unmodified.
+     *
+     * @throws UnsupportedOperationException always
+     * @deprecated Unsupported operation.
+     */
+    @CanIgnoreReturnValue
+    @Deprecated
+    @Override
+    public final boolean removeAll(Collection<?> oldElements) {
+      throw new UnsupportedOperationException();
+    }
+
+    /**
+     * Guaranteed to throw an exception and leave the collection unmodified.
+     *
+     * @throws UnsupportedOperationException always
+     * @deprecated Unsupported operation.
+     */
+    @CanIgnoreReturnValue
+    @Deprecated
+    @Override
+    public final boolean removeIf(java.util.function.Predicate<? super E> filter) {
+      throw new UnsupportedOperationException();
+    }
+
+    /**
+     * Guaranteed to throw an exception and leave the collection unmodified.
+     *
+     * @throws UnsupportedOperationException always
+     * @deprecated Unsupported operation.
+     */
+    @CanIgnoreReturnValue
+    @Deprecated
+    @Override
+    public final boolean retainAll(Collection<?> elementsToKeep) {
+      throw new UnsupportedOperationException();
+    }
+
+    /**
+     * Guaranteed to throw an exception and leave the collection unmodified.
+     *
+     * @throws UnsupportedOperationException always
+     * @deprecated Unsupported operation.
+     */
+    @Deprecated
+    @Override
+    public final void clear() {
+      throw new UnsupportedOperationException();
+    }
+
+    /**
+     * Scope the return type to {@link UnmodifiableIterator} to ensure this is an unmodifiable view.
+     *
+     * @since 20.0 (present with return type {@link Iterator} since 2.0)
+     */
+    @Override
+    public abstract UnmodifiableIterator<E> iterator();
   }
 
   /**
@@ -605,9 +752,19 @@ public final class Sets {
       }
 
       @Override
-      public Iterator<E> iterator() {
+      public UnmodifiableIterator<E> iterator() {
         return Iterators.unmodifiableIterator(
             Iterators.concat(set1.iterator(), set2minus1.iterator()));
+      }
+
+      @Override
+      public Stream<E> stream() {
+        return Stream.concat(set1.stream(), set2minus1.stream());
+      }
+
+      @Override
+      public Stream<E> parallelStream() {
+        return Stream.concat(set1.parallelStream(), set2minus1.parallelStream());
       }
 
       @Override
@@ -662,8 +819,18 @@ public final class Sets {
     final Predicate<Object> inSet2 = Predicates.in(set2);
     return new SetView<E>() {
       @Override
-      public Iterator<E> iterator() {
+      public UnmodifiableIterator<E> iterator() {
         return Iterators.filter(set1.iterator(), inSet2);
+      }
+
+      @Override
+      public Stream<E> stream() {
+        return set1.stream().filter(inSet2);
+      }
+
+      @Override
+      public Stream<E> parallelStream() {
+        return set1.parallelStream().filter(inSet2);
       }
 
       @Override
@@ -706,8 +873,18 @@ public final class Sets {
     final Predicate<Object> notInSet2 = Predicates.not(Predicates.in(set2));
     return new SetView<E>() {
       @Override
-      public Iterator<E> iterator() {
+      public UnmodifiableIterator<E> iterator() {
         return Iterators.filter(set1.iterator(), notInSet2);
+      }
+
+      @Override
+      public Stream<E> stream() {
+        return set1.stream().filter(notInSet2);
+      }
+
+      @Override
+      public Stream<E> parallelStream() {
+        return set1.parallelStream().filter(notInSet2);
       }
 
       @Override
@@ -746,7 +923,7 @@ public final class Sets {
 
     return new SetView<E>() {
       @Override
-      public Iterator<E> iterator() {
+      public UnmodifiableIterator<E> iterator() {
         final Iterator<? extends E> itr1 = set1.iterator();
         final Iterator<? extends E> itr2 = set2.iterator();
         return new AbstractIterator<E>() {
@@ -811,6 +988,10 @@ public final class Sets {
    * as {@code Predicates.instanceOf(ArrayList.class)}, which is inconsistent
    * with equals. (See {@link Iterables#filter(Iterable, Class)} for related
    * functionality.)
+   *
+   * <p><b>Java 8 users:</b> many use cases for this method are better
+   * addressed by {@link java.util.stream.Stream#filter}. This method is not
+   * being deprecated, but we gently encourage you to migrate to streams.
    */
   // TODO(kevinb): how to omit that last sentence when building GWT javadoc?
   public static <E> Set<E> filter(Set<E> unfiltered, Predicate<? super E> predicate) {
@@ -1440,7 +1621,6 @@ public final class Sets {
    * @return an unmodifiable view of the specified navigable set
    * @since 12.0
    */
-  @GwtIncompatible // NavigableSet
   public static <E> NavigableSet<E> unmodifiableNavigableSet(NavigableSet<E> set) {
     if (set instanceof ImmutableSortedSet || set instanceof UnmodifiableNavigableSet) {
       return set;
@@ -1448,7 +1628,6 @@ public final class Sets {
     return new UnmodifiableNavigableSet<E>(set);
   }
 
-  @GwtIncompatible // NavigableSet
   static final class UnmodifiableNavigableSet<E> extends ForwardingSortedSet<E>
       implements NavigableSet<E>, Serializable {
     private final NavigableSet<E> delegate;

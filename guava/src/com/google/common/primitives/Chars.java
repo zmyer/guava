@@ -19,9 +19,9 @@ import static com.google.common.base.Preconditions.checkElementIndex;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
 
+import com.google.common.annotations.Beta;
 import com.google.common.annotations.GwtCompatible;
 import com.google.common.annotations.GwtIncompatible;
-
 import java.io.Serializable;
 import java.util.AbstractList;
 import java.util.Arrays;
@@ -30,7 +30,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.RandomAccess;
-
 import javax.annotation.Nullable;
 
 /**
@@ -52,12 +51,16 @@ public final class Chars {
 
   /**
    * The number of bytes required to represent a primitive {@code char} value.
+   *
+   * <p><b>Java 8 users:</b> use {@link Character#BYTES} instead.
    */
   public static final int BYTES = Character.SIZE / Byte.SIZE;
 
   /**
    * Returns a hash code for {@code value}; equal to the result of invoking
    * {@code ((Character) value).hashCode()}.
+   *
+   * <p><b>Java 8 users:</b> use {@link Character#hashCode(char)} instead.
    *
    * @param value a primitive {@code char} value
    * @return a hash code for the value
@@ -76,10 +79,7 @@ public final class Chars {
    */
   public static char checkedCast(long value) {
     char result = (char) value;
-    if (result != value) {
-      // don't use checkArgument here, to avoid boxing
-      throw new IllegalArgumentException("Out of range: " + value);
-    }
+    checkArgument(result == value, "Out of range: %s", value);
     return result;
   }
 
@@ -244,6 +244,25 @@ public final class Chars {
       }
     }
     return max;
+  }
+
+  /**
+   * Returns the value nearest to {@code value} which is within the closed range {@code [min..max]}.
+   *
+   * <p>If {@code value} is within the range {@code [min..max]}, {@code value} is returned
+   * unchanged. If {@code value} is less than {@code min}, {@code min} is returned, and if
+   * {@code value} is greater than {@code max}, {@code max} is returned.
+   *
+   * @param value the {@code char} value to constrain
+   * @param min the lower bound (inclusive) of the range to constrain {@code value} to
+   * @param max the upper bound (inclusive) of the range to constrain {@code value} to
+   * @throws IllegalArgumentException if {@code min > max}
+   * @since 21.0
+   */
+  @Beta
+  public static char constrainToRange(char value, char min, char max) {
+    checkArgument(min <= max, "min (%s) must be less than or equal to max (%s)", min, max);
+    return value < min ? min : value < max ? value : max;
   }
 
   /**
@@ -559,11 +578,7 @@ public final class Chars {
     }
 
     char[] toCharArray() {
-      // Arrays.copyOfRange() is not available under GWT
-      int size = size();
-      char[] result = new char[size];
-      System.arraycopy(array, start, result, 0, size);
-      return result;
+      return Arrays.copyOfRange(array, start, end);
     }
 
     private static final long serialVersionUID = 0;

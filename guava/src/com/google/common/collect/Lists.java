@@ -34,7 +34,6 @@ import com.google.common.base.Objects;
 import com.google.common.math.IntMath;
 import com.google.common.primitives.Ints;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-
 import java.io.Serializable;
 import java.math.RoundingMode;
 import java.util.AbstractList;
@@ -50,7 +49,7 @@ import java.util.ListIterator;
 import java.util.NoSuchElementException;
 import java.util.RandomAccess;
 import java.util.concurrent.CopyOnWriteArrayList;
-
+import java.util.function.Predicate;
 import javax.annotation.Nullable;
 
 /**
@@ -106,6 +105,7 @@ public final class Lists {
    * calling {@link Collections#addAll}. This method is not actually very useful
    * and will likely be deprecated in the future.
    */
+  @SafeVarargs
   @CanIgnoreReturnValue // TODO(kak): Remove this
   @GwtCompatible(serializable = true)
   public static <E> ArrayList<E> newArrayList(E... elements) {
@@ -513,6 +513,7 @@ public final class Lists {
    *     {@code lists}, or any element of a provided list is null
    * @since 19.0
    */
+  @SafeVarargs
   public static <B> List<List<B>> cartesianProduct(List<? extends B>... lists) {
     return cartesianProduct(Arrays.asList(lists));
   }
@@ -549,6 +550,10 @@ public final class Lists {
    * copy the list using {@link ImmutableList#copyOf(Collection)} (for example),
    * then serialize the copy. Other methods similar to this do not implement
    * serialization at all for this reason.
+   *
+   * <p><b>Java 8 users:</b> many use cases for this method are better addressed
+   *  by {@link java.util.stream.Stream#map}. This method is not being
+   * deprecated, but we gently encourage you to migrate to streams.
    */
   public static <F, T> List<T> transform(
       List<F> fromList, Function<? super F, ? extends T> function) {
@@ -594,6 +599,12 @@ public final class Lists {
           return function.apply(from);
         }
       };
+    }
+
+    @Override
+    public boolean removeIf(Predicate<? super T> filter) {
+      checkNotNull(filter);
+      return fromList.removeIf(element -> filter.test(function.apply(element)));
     }
 
     private static final long serialVersionUID = 0;
@@ -645,6 +656,12 @@ public final class Lists {
     @Override
     public boolean isEmpty() {
       return fromList.isEmpty();
+    }
+
+    @Override
+    public boolean removeIf(Predicate<? super T> filter) {
+      checkNotNull(filter);
+      return fromList.removeIf(element -> filter.test(function.apply(element)));
     }
 
     @Override
@@ -726,7 +743,6 @@ public final class Lists {
    *
    * @since 7.0
    */
-  @Beta
   public static ImmutableList<Character> charactersOf(String string) {
     return new StringAsImmutableList(checkNotNull(string));
   }

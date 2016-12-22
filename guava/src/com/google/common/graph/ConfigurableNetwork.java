@@ -18,21 +18,29 @@ package com.google.common.graph;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.graph.GraphErrorMessageUtils.ADDING_PARALLEL_EDGE;
-import static com.google.common.graph.GraphErrorMessageUtils.REUSING_EDGE;
-import static com.google.common.graph.GraphErrorMessageUtils.SELF_LOOPS_NOT_ALLOWED;
+import static com.google.common.graph.GraphConstants.DEFAULT_EDGE_COUNT;
+import static com.google.common.graph.GraphConstants.DEFAULT_NODE_COUNT;
+import static com.google.common.graph.GraphConstants.EDGE_NOT_IN_GRAPH;
+import static com.google.common.graph.GraphConstants.NODE_NOT_IN_GRAPH;
 
-import com.google.common.collect.ImmutableList;
-import com.google.errorprone.annotations.CanIgnoreReturnValue;
-
+import com.google.common.collect.ImmutableSet;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import javax.annotation.Nullable;
 
 /**
- * Configurable implementation of {@link Network} that supports both directed and undirected graphs.
- * Instances of this class should be constructed with {@link NetworkBuilder}.
+ * Configurable implementation of {@link Network} that supports the options supplied by {@link
+ * NetworkBuilder}.
  *
- * <p>Time complexities for mutation methods are all O(1) except for {@code removeNode(N node)},
- * which is in O(d_node) where d_node is the degree of {@code node}.
+ * <p>This class maintains a map of nodes to {@link NetworkConnections}. This class also maintains a
+ * map of edges to reference nodes. The reference node is defined to be the edge's source node on
+ * directed graphs, and an arbitrary endpoint of the edge on undirected graphs.
+ *
+ * <p>Collection-returning accessors return unmodifiable views: the view returned will reflect
+ * changes to the graph (if the graph is mutable) but may not be modified by the user.
+ *
+ * <p>The time complexity of all collection-returning accessors is O(1), since views are returned.
  *
  * @author James Sexton
  * @author Joshua O'Madadhain
@@ -40,117 +48,155 @@ import java.util.Map;
  * @param <N> Node parameter type
  * @param <E> Edge parameter type
  */
-// TODO(b/24620028): Enable this class to support sorted nodes/edges.
-class ConfigurableNetwork<N, E>
-    extends AbstractConfigurableNetwork<N, E>
-    implements MutableNetwork<N, E> {
+class ConfigurableNetwork<N, E> extends AbstractNetwork<N, E> {
+  private final boolean isDirected;
+  private final boolean allowsParallelEdges;
+  private final boolean allowsSelfLoops;
+  private final ElementOrder<N> nodeOrder;
+  private final ElementOrder<E> edgeOrder;
 
-  /**
-   * Constructs a mutable graph with the properties specified in {@code builder}.
-   */
+  protected final MapIteratorCache<N, NetworkConnections<N, E>> nodeConnections;
+
+  // We could make this a Map<E, EndpointPair<N>>. It would make incidentNodes(edge) slightly
+  // faster, but also make Networks consume 5 to 20+% (increasing with average degree) more memory.
+  protected final MapIteratorCache<E, N> edgeToReferenceNode; // referenceNode == source if directed
+
+  /** Constructs a graph with the properties specified in {@code builder}. */
   ConfigurableNetwork(NetworkBuilder<? super N, ? super E> builder) {
-    super(builder);
+    this(
+        builder,
+        builder.nodeOrder.<N, NetworkConnections<N, E>>createMap(
+            builder.expectedNodeCount.or(DEFAULT_NODE_COUNT)),
+        builder.edgeOrder.<E, N>createMap(builder.expectedEdgeCount.or(DEFAULT_EDGE_COUNT)));
   }
 
   /**
-   * Constructs a graph with the properties specified in {@code builder}, initialized with
-   * the given node and edge maps. May be used for either mutable or immutable graphs.
+   * Constructs a graph with the properties specified in {@code builder}, initialized with the given
+   * node and edge maps.
    */
-  ConfigurableNetwork(NetworkBuilder<? super N, ? super E> builder,
-      Map<N, NodeConnections<N, E>> nodeConnections,
+  ConfigurableNetwork(
+      NetworkBuilder<? super N, ? super E> builder,
+      Map<N, NetworkConnections<N, E>> nodeConnections,
       Map<E, N> edgeToReferenceNode) {
-    super(builder, nodeConnections, edgeToReferenceNode);
+    this.isDirected = builder.directed;
+    this.allowsParallelEdges = builder.allowsParallelEdges;
+    this.allowsSelfLoops = builder.allowsSelfLoops;
+    this.nodeOrder = builder.nodeOrder.cast();
+    this.edgeOrder = builder.edgeOrder.cast();
+    // Prefer the heavier "MapRetrievalCache" for nodes if lookup is expensive. This optimizes
+    // methods that access the same node(s) repeatedly, such as Graphs.removeEdgesConnecting().
+    this.nodeConnections =
+        (nodeConnections instanceof TreeMap)
+            ? new MapRetrievalCache<N, NetworkConnections<N, E>>(nodeConnections)
+            : new MapIteratorCache<N, NetworkConnections<N, E>>(nodeConnections);
+    this.edgeToReferenceNode = new MapIteratorCache<E, N>(edgeToReferenceNode);
   }
 
   @Override
-  @CanIgnoreReturnValue
-  public boolean addNode(N node) {
-    checkNotNull(node, "node");
-    if (containsNode(node)) {
-      return false;
-    }
-    nodeConnections.put(node, newNodeConnections());
-    return true;
-  }
-
-  /**
-   * Add nodes that are not elements of the graph, then add {@code edge} between them.
-   * Return {@code false} if {@code edge} already exists between {@code node1} and {@code node2},
-   * and in the same direction.
-   *
-   * @throws IllegalArgumentException if an edge (other than {@code edge}) already
-   *         exists from {@code node1} to {@code node2}, and this is not a multigraph.
-   *         Also, if self-loops are not allowed, and {@code node1} is equal to {@code node2}.
-   */
-  @Override
-  @CanIgnoreReturnValue
-  public boolean addEdge(E edge, N node1, N node2) {
-    checkNotNull(edge, "edge");
-    checkNotNull(node1, "node1");
-    checkNotNull(node2, "node2");
-    checkArgument(allowsSelfLoops() || !node1.equals(node2), SELF_LOOPS_NOT_ALLOWED, node1);
-    boolean containsN1 = containsNode(node1);
-    boolean containsN2 = containsNode(node2);
-    if (containsEdge(edge)) {
-      checkArgument(containsN1 && containsN2 && edgesConnecting(node1, node2).contains(edge),
-          REUSING_EDGE, edge, incidentNodes(edge), node1, node2);
-      return false;
-    } else if (!allowsParallelEdges()) {
-      checkArgument(!(containsN1 && containsN2 && successors(node1).contains(node2)),
-          ADDING_PARALLEL_EDGE, node1, node2);
-    }
-    if (!containsN1) {
-      addNode(node1);
-    }
-    NodeConnections<N, E> connectionsN1 = nodeConnections.get(node1);
-    connectionsN1.addOutEdge(edge, node2);
-    if (!containsN2) {
-      addNode(node2);
-    }
-    NodeConnections<N, E> connectionsN2 = nodeConnections.get(node2);
-    connectionsN2.addInEdge(edge, node1);
-    edgeToReferenceNode.put(edge, node1);
-    return true;
+  public Set<N> nodes() {
+    return nodeConnections.unmodifiableKeySet();
   }
 
   @Override
-  @CanIgnoreReturnValue
-  public boolean removeNode(Object node) {
-    checkNotNull(node, "node");
-    if (!containsNode(node)) {
-      return false;
-    }
-    // Since views are returned, we need to copy the edges that will be removed.
-    // Thus we avoid modifying the underlying view while iterating over it.
-    for (E edge : ImmutableList.copyOf(incidentEdges(node))) {
-      removeEdge(edge);
-    }
-    nodeConnections.remove(node);
-    return true;
+  public Set<E> edges() {
+    return edgeToReferenceNode.unmodifiableKeySet();
   }
 
   @Override
-  @CanIgnoreReturnValue
-  public boolean removeEdge(Object edge) {
-    checkNotNull(edge, "edge");
-    N node1 = edgeToReferenceNode.get(edge);
-    if (node1 == null) {
-      return false;
-    }
-    N node2 = nodeConnections.get(node1).oppositeNode(edge);
-    nodeConnections.get(node1).removeOutEdge(edge);
-    nodeConnections.get(node2).removeInEdge(edge);
-    edgeToReferenceNode.remove(edge);
-    return true;
+  public boolean isDirected() {
+    return isDirected;
   }
 
-  private NodeConnections<N, E> newNodeConnections() {
-    return isDirected()
-        ? allowsParallelEdges()
-            ? DirectedMultiNodeConnections.<N, E>of()
-            : DirectedNodeConnections.<N, E>of()
-        : allowsParallelEdges()
-            ? UndirectedMultiNodeConnections.<N, E>of()
-            : UndirectedNodeConnections.<N, E>of();
+  @Override
+  public boolean allowsParallelEdges() {
+    return allowsParallelEdges;
+  }
+
+  @Override
+  public boolean allowsSelfLoops() {
+    return allowsSelfLoops;
+  }
+
+  @Override
+  public ElementOrder<N> nodeOrder() {
+    return nodeOrder;
+  }
+
+  @Override
+  public ElementOrder<E> edgeOrder() {
+    return edgeOrder;
+  }
+
+  @Override
+  public Set<E> incidentEdges(Object node) {
+    return checkedConnections(node).incidentEdges();
+  }
+
+  @Override
+  public EndpointPair<N> incidentNodes(Object edge) {
+    N nodeU = checkedReferenceNode(edge);
+    N nodeV = nodeConnections.get(nodeU).oppositeNode(edge);
+    return EndpointPair.of(this, nodeU, nodeV);
+  }
+
+  @Override
+  public Set<N> adjacentNodes(Object node) {
+    return checkedConnections(node).adjacentNodes();
+  }
+
+  @Override
+  public Set<E> edgesConnecting(Object nodeU, Object nodeV) {
+    NetworkConnections<N, E> connectionsU = checkedConnections(nodeU);
+    if (!allowsSelfLoops && nodeU == nodeV) { // just an optimization, only check reference equality
+      return ImmutableSet.of();
+    }
+    checkArgument(containsNode(nodeV), NODE_NOT_IN_GRAPH, nodeV);
+    return connectionsU.edgesConnecting(nodeV);
+  }
+
+  @Override
+  public Set<E> inEdges(Object node) {
+    return checkedConnections(node).inEdges();
+  }
+
+  @Override
+  public Set<E> outEdges(Object node) {
+    return checkedConnections(node).outEdges();
+  }
+
+  @Override
+  public Set<N> predecessors(Object node) {
+    return checkedConnections(node).predecessors();
+  }
+
+  @Override
+  public Set<N> successors(Object node) {
+    return checkedConnections(node).successors();
+  }
+
+  protected final NetworkConnections<N, E> checkedConnections(Object node) {
+    NetworkConnections<N, E> connections = nodeConnections.get(node);
+    if (connections == null) {
+      checkNotNull(node);
+      throw new IllegalArgumentException(String.format(NODE_NOT_IN_GRAPH, node));
+    }
+    return connections;
+  }
+
+  protected final N checkedReferenceNode(Object edge) {
+    N referenceNode = edgeToReferenceNode.get(edge);
+    if (referenceNode == null) {
+      checkNotNull(edge);
+      throw new IllegalArgumentException(String.format(EDGE_NOT_IN_GRAPH, edge));
+    }
+    return referenceNode;
+  }
+
+  protected final boolean containsNode(@Nullable Object node) {
+    return nodeConnections.containsKey(node);
+  }
+
+  protected final boolean containsEdge(@Nullable Object edge) {
+    return edgeToReferenceNode.containsKey(edge);
   }
 }

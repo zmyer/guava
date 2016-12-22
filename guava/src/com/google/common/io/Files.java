@@ -30,7 +30,6 @@ import com.google.common.collect.TreeTraverser;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -230,12 +229,6 @@ public final class Files {
     return asByteSink(file, modes).asCharSink(charset);
   }
 
-  private static FileWriteMode[] modes(boolean append) {
-    return append
-        ? new FileWriteMode[]{ FileWriteMode.APPEND }
-        : new FileWriteMode[0];
-  }
-
   /**
    * Reads all bytes from a file into a byte array.
    *
@@ -328,22 +321,7 @@ public final class Files {
    * @throws IOException if an I/O error occurs
    */
   public static void append(CharSequence from, File to, Charset charset) throws IOException {
-    write(from, to, charset, true);
-  }
-
-  /**
-   * Private helper method. Writes a character sequence to a file, optionally appending.
-   *
-   * @param from the character sequence to append
-   * @param to the destination file
-   * @param charset the charset used to encode the output stream; see {@link StandardCharsets} for
-   *     helpful predefined constants
-   * @param append true to append, false to overwrite
-   * @throws IOException if an I/O error occurs
-   */
-  private static void write(CharSequence from, File to, Charset charset, boolean append)
-      throws IOException {
-    asCharSink(to, charset, modes(append)).write(from);
+    asCharSink(to, charset, new FileWriteMode[]{ FileWriteMode.APPEND }).write(from);
   }
 
   /**
@@ -583,18 +561,17 @@ public final class Files {
   }
 
   /**
-   * Fully maps a file read-only in to memory as per
-   * {@link FileChannel#map(java.nio.channels.FileChannel.MapMode, long, long)}.
+   * Fully maps a file read-only in to memory as per {@link
+   * FileChannel#map(java.nio.channels.FileChannel.MapMode, long, long)}.
    *
    * <p>Files are mapped from offset 0 to its length.
    *
-   * <p>This only works for files <= {@link Integer#MAX_VALUE} bytes.
+   * <p>This only works for files ≤ {@link Integer#MAX_VALUE} bytes.
    *
    * @param file the file to map
    * @return a read-only buffer reflecting {@code file}
    * @throws FileNotFoundException if the {@code file} does not exist
    * @throws IOException if an I/O error occurs
-   *
    * @see FileChannel#map(MapMode, long, long)
    * @since 2.0
    */
@@ -604,20 +581,19 @@ public final class Files {
   }
 
   /**
-   * Fully maps a file in to memory as per
-   * {@link FileChannel#map(java.nio.channels.FileChannel.MapMode, long, long)} using the requested
-   * {@link MapMode}.
+   * Fully maps a file in to memory as per {@link
+   * FileChannel#map(java.nio.channels.FileChannel.MapMode, long, long)} using the requested {@link
+   * MapMode}.
    *
    * <p>Files are mapped from offset 0 to its length.
    *
-   * <p>This only works for files <= {@link Integer#MAX_VALUE} bytes.
+   * <p>This only works for files ≤ {@link Integer#MAX_VALUE} bytes.
    *
    * @param file the file to map
    * @param mode the mode to use when mapping {@code file}
    * @return a buffer reflecting {@code file}
    * @throws FileNotFoundException if the {@code file} does not exist
    * @throws IOException if an I/O error occurs
-   *
    * @see FileChannel#map(MapMode, long, long)
    * @since 2.0
    */
@@ -631,9 +607,8 @@ public final class Files {
   }
 
   /**
-   * Maps a file in to memory as per
-   * {@link FileChannel#map(java.nio.channels.FileChannel.MapMode, long, long)} using the requested
-   * {@link MapMode}.
+   * Maps a file in to memory as per {@link FileChannel#map(java.nio.channels.FileChannel.MapMode,
+   * long, long)} using the requested {@link MapMode}.
    *
    * <p>Files are mapped from offset 0 to {@code size}.
    *
@@ -641,13 +616,12 @@ public final class Files {
    * with the requested {@code size}. Thus this method is useful for creating memory mapped files
    * which do not yet exist.
    *
-   * <p>This only works for files <= {@link Integer#MAX_VALUE} bytes.
+   * <p>This only works for files ≤ {@link Integer#MAX_VALUE} bytes.
    *
    * @param file the file to map
    * @param mode the mode to use when mapping {@code file}
    * @return a buffer reflecting {@code file}
    * @throws IOException if an I/O error occurs
-   *
    * @see FileChannel#map(MapMode, long, long)
    * @since 2.0
    */
@@ -748,6 +722,13 @@ public final class Files {
    * Returns the <a href="http://en.wikipedia.org/wiki/Filename_extension">file extension</a> for
    * the given file name, or the empty string if the file has no extension. The result does not
    * include the '{@code .}'.
+   *
+   * <p><b>Note:</b> This method simply returns everything after the last '{@code .}' in the file's
+   * name as determined by {@link File#getName}. It does not account for any filesystem-specific
+   * behavior that the {@link File} API does not already account for. For example, on NTFS it will
+   * report {@code "txt"} as the extension for the filename {@code "foo.exe:.txt"} even though NTFS
+   * will drop the {@code ":.txt"} part of the name when the file is actually created on the
+   * filesystem due to NTFS's <a href="https://goo.gl/vTpJi4">Alternate Data Streams</a>.
    *
    * @since 11.0
    */

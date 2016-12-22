@@ -38,19 +38,18 @@ import com.google.common.collect.testing.testers.ListListIteratorTester;
 import com.google.common.collect.testing.testers.ListRemoveAllTester;
 import com.google.common.collect.testing.testers.ListRemoveAtIndexTester;
 import com.google.common.collect.testing.testers.ListRemoveTester;
+import com.google.common.collect.testing.testers.ListReplaceAllTester;
 import com.google.common.collect.testing.testers.ListRetainAllTester;
 import com.google.common.collect.testing.testers.ListSetTester;
 import com.google.common.collect.testing.testers.ListSubListTester;
 import com.google.common.collect.testing.testers.ListToArrayTester;
 import com.google.common.testing.SerializableTester;
-
-import junit.framework.TestSuite;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import junit.framework.TestSuite;
 
 /**
  * Creates, based on your criteria, a JUnit test suite that exhaustively tests
@@ -84,6 +83,7 @@ public final class ListTestSuiteBuilder<E>
     testers.add(ListRemoveAllTester.class);
     testers.add(ListRemoveAtIndexTester.class);
     testers.add(ListRemoveTester.class);
+    testers.add(ListReplaceAllTester.class);
     testers.add(ListRetainAllTester.class);
     testers.add(ListSetTester.class);
     testers.add(ListSubListTester.class);

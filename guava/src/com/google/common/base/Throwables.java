@@ -23,7 +23,6 @@ import com.google.common.annotations.GwtCompatible;
 import com.google.common.annotations.GwtIncompatible;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
@@ -32,7 +31,6 @@ import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
 import javax.annotation.Nullable;
 
 /**
@@ -79,9 +77,6 @@ public final class Throwables {
   }
 
   /**
-   * <b>To be deprecated.</b> Use {@link #throwIfInstanceOf}, which has the same behavior but
-   * rejects {@code null}.
-   *
    * Propagates {@code throwable} exactly as-is, if and only if it is an instance of {@code
    * declaredType}. Example usage:
    *
@@ -96,7 +91,11 @@ public final class Throwables {
    *   throw Throwables.propagate(t);
    * }
    * </pre>
+   *
+   * @deprecated Use {@link #throwIfInstanceOf}, which has the same behavior
+   *     but rejects {@code null}. This method is scheduled to be removed in July 2018.
    */
+  @Deprecated
   @GwtIncompatible // throwIfInstanceOf
   public static <X extends Throwable> void propagateIfInstanceOf(
       @Nullable Throwable throwable, Class<X> declaredType) throws X {
@@ -135,10 +134,7 @@ public final class Throwables {
   }
 
   /**
-   * <b>To be deprecated.</b> Use {@link #throwIfUnchecked}, which has the same behavior but rejects
-   * {@code null}.
-   *
-   * <p>Propagates {@code throwable} exactly as-is, if and only if it is an instance of
+   * Propagates {@code throwable} exactly as-is, if and only if it is an instance of
    * {@link RuntimeException} or {@link Error}. Example usage:
    *
    * <pre>
@@ -151,8 +147,12 @@ public final class Throwables {
    *   throw new RuntimeException("unexpected", t);
    * }
    * </pre>
+   *
+   * @deprecated Use {@link #throwIfUnchecked}, which has the same behavior but rejects
+   *     {@code null}. This method is scheduled to be removed in July 2018.
    */
-  @GwtIncompatible // to be deprecated
+  @Deprecated
+  @GwtIncompatible
   public static void propagateIfPossible(@Nullable Throwable throwable) {
     if (throwable != null) {
       throwIfUnchecked(throwable);
@@ -205,9 +205,6 @@ public final class Throwables {
   }
 
   /**
-   * <b>To be deprecated.</b> Use {@code throw e} or {@code throw new RuntimeException(e)} directly,
-   * or use a combination of {@link #throwIfUnchecked} and {@code throw new RuntimeException(e)}.
-   *
    * <p>Propagates {@code throwable} as-is if it is an instance of {@link RuntimeException} or
    * {@link Error}, or else as a last resort, wraps it in a {@code RuntimeException} and then
    * propagates.
@@ -231,9 +228,13 @@ public final class Throwables {
    * @param throwable the Throwable to propagate
    * @return nothing will ever be returned; this return type is only for your convenience, as
    *     illustrated in the example above
+   * @deprecated Use {@code throw e} or {@code throw new RuntimeException(e)} directly, or use a
+   *     combination of {@link #throwIfUnchecked} and {@code throw new RuntimeException(e)}. This
+   *     method is scheduled to be removed in July 2018.
    */
   @CanIgnoreReturnValue
-  @GwtIncompatible // to be deprecated
+  @GwtIncompatible
+  @Deprecated
   public static RuntimeException propagate(Throwable throwable) {
     throwIfUnchecked(throwable);
     throw new RuntimeException(throwable);
@@ -279,6 +280,25 @@ public final class Throwables {
       throwable = throwable.getCause();
     }
     return Collections.unmodifiableList(causes);
+  }
+  
+  /**
+   * Returns {@code throwable}'s cause, cast to {@code expectedCauseType}.
+   *
+   * @throws ClassCastException if the cause cannot be cast to the expected type. The {@link
+   *     ClassCastException}'s cause is {@code throwable}.
+   * @since 22.0
+   */
+  @Beta
+  @GwtIncompatible // Class.cast(Object)
+  public static <X extends Throwable> X getCauseAs(Throwable throwable, Class<X> expectedCauseType)
+      throws ClassCastException {
+    try {
+      return expectedCauseType.cast(throwable.getCause());
+    } catch (ClassCastException e) {
+      e.initCause(throwable);
+      throw e;
+    }
   }
 
   /**

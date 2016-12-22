@@ -21,7 +21,6 @@ import static com.google.common.base.Preconditions.checkPositionIndexes;
 
 import com.google.common.annotations.Beta;
 import com.google.common.annotations.GwtCompatible;
-
 import java.io.Serializable;
 import java.util.AbstractList;
 import java.util.Arrays;
@@ -30,7 +29,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.RandomAccess;
-
 import javax.annotation.Nullable;
 
 /**
@@ -48,8 +46,64 @@ public final class Booleans {
   private Booleans() {}
 
   /**
+   * Comparators for {@code Boolean} values.
+   */
+  private enum BooleanComparator implements Comparator<Boolean> {
+    TRUE_FIRST(1, "Booleans.trueFirst()"),
+    FALSE_FIRST(-1, "Booleans.falseFirst()");
+
+    private final int trueValue;
+    private final String toString;
+
+    BooleanComparator(int trueValue, String toString) {
+      this.trueValue = trueValue;
+      this.toString = toString;
+    }
+
+    @Override
+    public int compare(Boolean a, Boolean b) {
+      int aVal = a ? trueValue : 0;
+      int bVal = b ? trueValue : 0;
+      return bVal - aVal;
+    }
+
+    @Override
+    public String toString() {
+      return toString;
+    }
+  }
+
+  /**
+   * Returns a {@code Comparator<Boolean>} that sorts {@code true} before {@code false}.
+   *
+   * <p>This is particularly useful in Java 8+ in combination with {@code Comparators.comparing},
+   * e.g. {@code Comparators.comparing(Foo::hasBar, trueFirst())}.
+   *
+   * @since 21.0
+   */
+  @Beta
+  public static Comparator<Boolean> trueFirst() {
+    return BooleanComparator.TRUE_FIRST;
+  }
+
+  /**
+   * Returns a {@code Comparator<Boolean>} that sorts {@code false} before {@code true}.
+   *
+   * <p>This is particularly useful in Java 8+ in combination with {@code Comparators.comparing},
+   * e.g. {@code Comparators.comparing(Foo::hasBar, falseFirst())}.
+   *
+   * @since 21.0
+   */
+  @Beta
+  public static Comparator<Boolean> falseFirst() {
+    return BooleanComparator.FALSE_FIRST;
+  }
+
+  /**
    * Returns a hash code for {@code value}; equal to the result of invoking
    * {@code ((Boolean) value).hashCode()}.
+   *
+   * <p><b>Java 8 users:</b> use {@link Boolean#hashCode(boolean)} instead.
    *
    * @param value a primitive {@code boolean} value
    * @return a hash code for the value
@@ -448,11 +502,7 @@ public final class Booleans {
     }
 
     boolean[] toBooleanArray() {
-      // Arrays.copyOfRange() is not available under GWT
-      int size = size();
-      boolean[] result = new boolean[size];
-      System.arraycopy(array, start, result, 0, size);
-      return result;
+      return Arrays.copyOfRange(array, start, end);
     }
 
     private static final long serialVersionUID = 0;

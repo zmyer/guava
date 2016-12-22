@@ -26,7 +26,6 @@ import com.google.common.annotations.GwtIncompatible;
 import com.google.common.base.MoreObjects;
 import com.google.common.primitives.Ints;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -35,7 +34,6 @@ import java.util.Comparator;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-
 import javax.annotation.Nullable;
 
 /**
@@ -78,14 +76,13 @@ public final class TreeMultiset<E> extends AbstractSortedMultiset<E> implements 
   /**
    * Creates a new, empty multiset, sorted according to the specified comparator. All elements
    * inserted into the multiset must be <i>mutually comparable</i> by the specified comparator:
-   * {@code comparator.compare(e1,
-   * e2)} must not throw a {@code ClassCastException} for any elements {@code e1} and {@code e2} in
-   * the multiset. If the user attempts to add an element to the multiset that violates this
-   * constraint, the {@code add(Object)} call will throw a {@code ClassCastException}.
+   * {@code comparator.compare(e1, e2)} must not throw a {@code ClassCastException} for any elements
+   * {@code e1} and {@code e2} in the multiset. If the user attempts to add an element to the
+   * multiset that violates this constraint, the {@code add(Object)} call will throw a {@code
+   * ClassCastException}.
    *
-   * @param comparator
-   *          the comparator that will be used to sort this multiset. A null value indicates that
-   *          the elements' <i>natural ordering</i> should be used.
+   * @param comparator the comparator that will be used to sort this multiset. A null value
+   *     indicates that the elements' <i>natural ordering</i> should be used.
    */
   @SuppressWarnings("unchecked")
   public static <E> TreeMultiset<E> create(@Nullable Comparator<? super E> comparator) {

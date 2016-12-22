@@ -39,13 +39,9 @@ import com.google.common.collect.testing.google.ListGenerators.ImmutableListOfGe
 import com.google.common.collect.testing.google.ListGenerators.ImmutableListTailSubListGenerator;
 import com.google.common.collect.testing.google.ListGenerators.UnhashableElementsImmutableListGenerator;
 import com.google.common.collect.testing.testers.ListHashCodeTester;
+import com.google.common.testing.CollectorTester;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.SerializableTester;
-
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
-
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -56,6 +52,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
+import junit.framework.Test;
+import junit.framework.TestCase;
+import junit.framework.TestSuite;
 
 /**
  * Unit test for {@link ImmutableList}.
@@ -426,6 +425,38 @@ public class ImmutableListTest extends TestCase {
       ImmutableList<String> result = builder.build();
       assertEquals(ImmutableList.of("a"), result);
       assertEquals(1, result.size());
+    }
+
+    public void testSortedCopyOf() {
+      Collection<String> c = MinimalCollection.of("a", "b", "A", "c");
+      List<String> list = ImmutableList.sortedCopyOf(String.CASE_INSENSITIVE_ORDER, c);
+      assertEquals(asList("a", "A", "b", "c"), list);
+    }
+
+    public void testSortedCopyOf_empty() {
+      Collection<String> c = MinimalCollection.of();
+      List<String> list = ImmutableList.sortedCopyOf(String.CASE_INSENSITIVE_ORDER, c);
+      assertEquals(asList(), list);
+    }
+
+    public void testSortedCopyOf_singleton() {
+      Collection<String> c = MinimalCollection.of("a");
+      List<String> list = ImmutableList.sortedCopyOf(String.CASE_INSENSITIVE_ORDER, c);
+      assertEquals(asList("a"), list);
+    }
+
+    public void testSortedCopyOf_containsNull() {
+      Collection<String> c = MinimalCollection.of("a", "b", "A", null, "c");
+      try {
+        ImmutableList.sortedCopyOf(String.CASE_INSENSITIVE_ORDER, c);
+        fail("Expected NPE");
+      } catch (NullPointerException expected) {
+      }
+    }
+
+    public void testToImmutableList() {
+      CollectorTester.of(ImmutableList.<String>toImmutableList())
+          .expectCollects(ImmutableList.of("a", "b", "c", "d"), "a", "b", "c", "d");
     }
   }
 

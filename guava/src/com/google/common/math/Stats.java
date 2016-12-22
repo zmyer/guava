@@ -28,12 +28,10 @@ import com.google.common.annotations.Beta;
 import com.google.common.annotations.GwtIncompatible;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
-
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Iterator;
-
 import javax.annotation.Nullable;
 
 /**
@@ -202,7 +200,7 @@ public final class Stats implements Serializable {
    * Returns the <a href="http://en.wikipedia.org/wiki/Variance#Population_variance">population
    * variance</a> of the values. The count must be non-zero.
    *
-   * <p>This is guaranteed to return zero if the the dataset contains only exactly one finite value.
+   * <p>This is guaranteed to return zero if the dataset contains only exactly one finite value.
    * It is not guaranteed to return zero when the dataset consists of the same value multiple times,
    * due to numerical errors. However, it is guaranteed never to return a negative result.
    *
@@ -229,7 +227,7 @@ public final class Stats implements Serializable {
    * <a href="http://en.wikipedia.org/wiki/Standard_deviation#Definition_of_population_values">
    * population standard deviation</a> of the values. The count must be non-zero.
    *
-   * <p>This is guaranteed to return zero if the the dataset contains only exactly one finite value.
+   * <p>This is guaranteed to return zero if the dataset contains only exactly one finite value.
    * It is not guaranteed to return zero when the dataset consists of the same value multiple times,
    * due to numerical errors. However, it is guaranteed never to return a negative result.
    *
@@ -245,7 +243,7 @@ public final class Stats implements Serializable {
   }
 
   /**
-   * Returns the <a href="http://en.wikipedia.org/wiki/Variance#Sample_variance">unbaised sample
+   * Returns the <a href="http://en.wikipedia.org/wiki/Variance#Sample_variance">unbiased sample
    * variance</a> of the values. If this dataset is a sample drawn from a population, this is an
    * unbiased estimator of the population variance of the population. The count must be greater than
    * one.
@@ -498,7 +496,7 @@ public final class Stats implements Serializable {
   // Serialization helpers
 
   /**
-   * The size of byte array representaion in bytes.
+   * The size of byte array representation in bytes.
    */
   static final int BYTES = (Long.SIZE + Double.SIZE * 4) / Byte.SIZE;
 

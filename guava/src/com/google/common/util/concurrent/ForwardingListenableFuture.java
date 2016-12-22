@@ -14,10 +14,9 @@
 
 package com.google.common.util.concurrent;
 
-import com.google.common.annotations.GwtIncompatible;
+import com.google.common.annotations.GwtCompatible;
 import com.google.common.base.Preconditions;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-
 import java.util.concurrent.Executor;
 
 /**
@@ -31,7 +30,7 @@ import java.util.concurrent.Executor;
  * @since 4.0
  */
 @CanIgnoreReturnValue // TODO(cpovirk): Consider being more strict.
-@GwtIncompatible
+@GwtCompatible
 public abstract class ForwardingListenableFuture<V> extends ForwardingFuture<V>
     implements ListenableFuture<V> {
 
@@ -39,7 +38,7 @@ public abstract class ForwardingListenableFuture<V> extends ForwardingFuture<V>
   protected ForwardingListenableFuture() {}
 
   @Override
-  protected abstract ListenableFuture<V> delegate();
+  protected abstract ListenableFuture<? extends V> delegate();
 
   @Override
   public void addListener(Runnable listener, Executor exec) {

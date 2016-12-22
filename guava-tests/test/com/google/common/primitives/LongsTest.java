@@ -25,9 +25,6 @@ import com.google.common.base.Converter;
 import com.google.common.collect.testing.Helpers;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.SerializableTester;
-
-import junit.framework.TestCase;
-
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collection;
@@ -35,6 +32,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
+import junit.framework.TestCase;
 
 /**
  * Unit test for {@link Longs}.
@@ -173,6 +171,19 @@ public class LongsTest extends TestCase {
     assertEquals((long) 0, Longs.min(
         (long) 8, (long) 6, (long) 7,
         (long) 5, (long) 3, (long) 0, (long) 9));
+  }
+
+  public void testConstrainToRange() {
+    assertEquals((long) 1, Longs.constrainToRange((long) 1, (long) 0, (long) 5));
+    assertEquals((long) 1, Longs.constrainToRange((long) 1, (long) 1, (long) 5));
+    assertEquals((long) 3, Longs.constrainToRange((long) 1, (long) 3, (long) 5));
+    assertEquals((long) -1, Longs.constrainToRange((long) 0, (long) -5, (long) -1));
+    assertEquals((long) 2, Longs.constrainToRange((long) 5, (long) 2, (long) 2));
+    try {
+      Longs.constrainToRange((long) 1, (long) 3, (long) 2);
+      fail();
+    } catch (IllegalArgumentException expected) {
+    }
   }
 
   public void testConcat() {

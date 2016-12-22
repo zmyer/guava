@@ -16,40 +16,43 @@
 
 package com.google.common.graph;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.annotations.Beta;
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.graph.DirectedNodeAdjacencies.Adjacency;
-
-import java.util.Set;
+import com.google.common.collect.Maps;
+import com.google.common.graph.GraphConstants.Presence;
+import com.google.errorprone.annotations.Immutable;
 
 /**
- * A {@link Graph} whose relationships are constant. Instances of this class may be obtained
- * with {@link #copyOf(Graph)}.
+ * A {@link Graph} whose elements and structural relationships will never change. Instances of this
+ * class may be obtained with {@link #copyOf(Graph)}.
  *
- * <p>The time complexity of {@code edgesConnecting(node1, node2)} is O(min(outD_node1, inD_node2)).
+ * <p>See the Guava User's Guide's <a
+ * href="https://github.com/google/guava/wiki/GraphsExplained#immutable-implementations">discussion
+ * of the {@code Immutable*} types</a> for more information on the properties and guarantees
+ * provided by this class.
  *
  * @author James Sexton
  * @author Joshua O'Madadhain
  * @author Omar Darwish
  * @param <N> Node parameter type
+ * @since 20.0
  */
-public final class ImmutableGraph<N> extends AbstractConfigurableGraph<N> {
+@Beta
+public abstract class ImmutableGraph<N> extends ForwardingGraph<N> {
 
-  private ImmutableGraph(Graph<N> graph) {
-    super(GraphBuilder.from(graph), getNodeConnections(graph));
-  }
+  /** To ensure the immutability contract is maintained, there must be no public constructors. */
+  ImmutableGraph() {}
 
-  /**
-   * Returns an immutable copy of {@code graph}.
-   */
+  /** Returns an immutable copy of {@code graph}. */
   public static <N> ImmutableGraph<N> copyOf(Graph<N> graph) {
-    // TODO(b/28087289): we can remove this restriction when Graph supports parallel edges
-    checkArgument(!(graph instanceof Network), "Input must not implement common.graph.Network");
     return (graph instanceof ImmutableGraph)
         ? (ImmutableGraph<N>) graph
-        : new ImmutableGraph<N>(graph);
+        : new ValueBackedImpl<N, Presence>(
+            GraphBuilder.from(graph), getNodeConnections(graph), graph.edges().size());
   }
 
   /**
@@ -62,41 +65,41 @@ public final class ImmutableGraph<N> extends AbstractConfigurableGraph<N> {
     return checkNotNull(graph);
   }
 
-  private static <N> ImmutableMap<N, NodeAdjacencies<N>> getNodeConnections(Graph<N> graph) {
-    ImmutableMap.Builder<N, NodeAdjacencies<N>> nodeConnections = ImmutableMap.builder();
+  private static <N> ImmutableMap<N, GraphConnections<N, Presence>> getNodeConnections(
+      Graph<N> graph) {
+    // ImmutableMap.Builder maintains the order of the elements as inserted, so the map will have
+    // whatever ordering the graph's nodes do, so ImmutableSortedMap is unnecessary even if the
+    // input nodes are sorted.
+    ImmutableMap.Builder<N, GraphConnections<N, Presence>> nodeConnections = ImmutableMap.builder();
     for (N node : graph.nodes()) {
-      nodeConnections.put(node, nodeConnectionsOf(graph, node));
+      nodeConnections.put(node, connectionsOf(graph, node));
     }
     return nodeConnections.build();
   }
 
-  private static <N> NodeAdjacencies<N> nodeConnectionsOf(Graph<N> graph, N node) {
+  private static <N> GraphConnections<N, Presence> connectionsOf(Graph<N> graph, N node) {
+    Function<Object, Presence> edgeValueFn = Functions.constant(Presence.EDGE_EXISTS);
     return graph.isDirected()
-        ? DirectedNodeAdjacencies.ofImmutable(createAdjacencyMap(
-            graph, node), graph.predecessors(node).size(), graph.successors(node).size())
-        : UndirectedNodeAdjacencies.ofImmutable(graph.adjacentNodes(node));
+        ? DirectedGraphConnections.ofImmutable(
+            graph.predecessors(node), Maps.asMap(graph.successors(node), edgeValueFn))
+        : UndirectedGraphConnections.ofImmutable(
+            Maps.asMap(graph.adjacentNodes(node), edgeValueFn));
   }
 
-  private static <N> ImmutableMap<N, Adjacency> createAdjacencyMap(Graph<N> graph, N node) {
-    Set<N> predecessors = graph.predecessors(node);
-    Set<N> successors = graph.successors(node);
-    ImmutableMap.Builder<N, Adjacency> nodeAdjacencies = ImmutableMap.builder();
-    for (N adjacentNode : graph.adjacentNodes(node)) {
-      nodeAdjacencies.put(adjacentNode,
-          getAdjacency(predecessors.contains(adjacentNode), successors.contains(adjacentNode)));
+  static class ValueBackedImpl<N, V> extends ImmutableGraph<N> {
+    protected final ValueGraph<N, V> backingValueGraph;
+
+    ValueBackedImpl(
+        AbstractGraphBuilder<? super N> builder,
+        ImmutableMap<N, GraphConnections<N, V>> nodeConnections,
+        long edgeCount) {
+      this.backingValueGraph =
+          new ConfigurableValueGraph<N, V>(builder, nodeConnections, edgeCount);
     }
-    return nodeAdjacencies.build();
-  }
 
-  private static Adjacency getAdjacency(boolean isPredecessor, boolean isSuccesor) {
-    if (isPredecessor && isSuccesor) {
-      return Adjacency.BOTH;
-    } else if (isPredecessor) {
-      return Adjacency.PRED;
-    } else if (isSuccesor) {
-      return Adjacency.SUCC;
-    } else {
-      throw new IllegalStateException();
+    @Override
+    protected Graph<N> delegate() {
+      return backingValueGraph;
     }
   }
 }

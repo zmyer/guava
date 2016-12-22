@@ -26,29 +26,38 @@ import com.google.common.collect.testing.features.CollectionSize;
 import com.google.common.collect.testing.features.Feature;
 import com.google.common.collect.testing.features.MapFeature;
 import com.google.common.collect.testing.testers.MapClearTester;
+import com.google.common.collect.testing.testers.MapComputeIfAbsentTester;
+import com.google.common.collect.testing.testers.MapComputeIfPresentTester;
+import com.google.common.collect.testing.testers.MapComputeTester;
 import com.google.common.collect.testing.testers.MapContainsKeyTester;
 import com.google.common.collect.testing.testers.MapContainsValueTester;
 import com.google.common.collect.testing.testers.MapCreationTester;
 import com.google.common.collect.testing.testers.MapEntrySetTester;
 import com.google.common.collect.testing.testers.MapEqualsTester;
+import com.google.common.collect.testing.testers.MapForEachTester;
+import com.google.common.collect.testing.testers.MapGetOrDefaultTester;
 import com.google.common.collect.testing.testers.MapGetTester;
 import com.google.common.collect.testing.testers.MapHashCodeTester;
 import com.google.common.collect.testing.testers.MapIsEmptyTester;
+import com.google.common.collect.testing.testers.MapMergeTester;
 import com.google.common.collect.testing.testers.MapPutAllTester;
+import com.google.common.collect.testing.testers.MapPutIfAbsentTester;
 import com.google.common.collect.testing.testers.MapPutTester;
+import com.google.common.collect.testing.testers.MapRemoveEntryTester;
 import com.google.common.collect.testing.testers.MapRemoveTester;
+import com.google.common.collect.testing.testers.MapReplaceAllTester;
+import com.google.common.collect.testing.testers.MapReplaceEntryTester;
+import com.google.common.collect.testing.testers.MapReplaceTester;
 import com.google.common.collect.testing.testers.MapSerializationTester;
 import com.google.common.collect.testing.testers.MapSizeTester;
 import com.google.common.collect.testing.testers.MapToStringTester;
 import com.google.common.testing.SerializableTester;
-
-import junit.framework.TestSuite;
-
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import junit.framework.TestSuite;
 
 /**
  * Creates, based on your criteria, a JUnit test suite that exhaustively tests
@@ -69,17 +78,28 @@ public class MapTestSuiteBuilder<K, V>
   protected List<Class<? extends AbstractTester>> getTesters() {
     return Arrays.<Class<? extends AbstractTester>>asList(
         MapClearTester.class,
+        MapComputeTester.class,
+        MapComputeIfAbsentTester.class,
+        MapComputeIfPresentTester.class,
         MapContainsKeyTester.class,
         MapContainsValueTester.class,
         MapCreationTester.class,
         MapEntrySetTester.class,
         MapEqualsTester.class,
+        MapForEachTester.class,
         MapGetTester.class,
+        MapGetOrDefaultTester.class,
         MapHashCodeTester.class,
         MapIsEmptyTester.class,
+        MapMergeTester.class,
         MapPutTester.class,
         MapPutAllTester.class,
+        MapPutIfAbsentTester.class,
         MapRemoveTester.class,
+        MapRemoveEntryTester.class,
+        MapReplaceTester.class,
+        MapReplaceAllTester.class,
+        MapReplaceEntryTester.class,
         MapSerializationTester.class,
         MapSizeTester.class,
         MapToStringTester.class);

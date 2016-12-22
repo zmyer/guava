@@ -27,7 +27,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Queues;
 import com.google.common.util.concurrent.ForwardingListenableFuture.SimpleForwardingListenableFuture;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.Collections;
@@ -50,7 +49,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
 import javax.annotation.concurrent.GuardedBy;
 
 /**
@@ -234,43 +232,7 @@ public final class MoreExecutors {
             .build());
   }
 
-  /**
-   * Creates an executor service that runs each task in the thread that invokes
-   * {@code execute/submit}, as in {@link CallerRunsPolicy}. This applies both to individually
-   * submitted tasks and to collections of tasks submitted via {@code invokeAll} or
-   * {@code invokeAny}. In the latter case, tasks will run serially on the calling thread. Tasks are
-   * run to completion before a {@code Future} is returned to the caller (unless the executor has
-   * been shutdown).
-   *
-   * <p>Although all tasks are immediately executed in the thread that submitted the task, this
-   * {@code ExecutorService} imposes a small locking overhead on each task submission in order to
-   * implement shutdown and termination behavior.
-   *
-   * <p>The implementation deviates from the {@code ExecutorService} specification with regards to
-   * the {@code shutdownNow} method. First, "best-effort" with regards to canceling running tasks is
-   * implemented as "no-effort". No interrupts or other attempts are made to stop threads executing
-   * tasks. Second, the returned list will always be empty, as any submitted task is considered to
-   * have started execution. This applies also to tasks given to {@code invokeAll} or
-   * {@code invokeAny} which are pending serial execution, even the subset of the tasks that have
-   * not yet started execution. It is unclear from the {@code ExecutorService} specification if
-   * these should be included, and it's much easier to implement the interpretation that they not
-   * be. Finally, a call to {@code shutdown} or {@code shutdownNow} may result in concurrent calls
-   * to {@code invokeAll/invokeAny} throwing RejectedExecutionException, although a subset of the
-   * tasks may already have been executed.
-   *
-   * @since 10.0 (<a href="https://github.com/google/guava/wiki/Compatibility">mostly
-   *     source-compatible</a> since 3.0)
-   * @deprecated Use {@link #directExecutor()} if you only require an {@link Executor} and
-   *     {@link #newDirectExecutorService()} if you need a {@link ListeningExecutorService}. This
-   *     method will be removed in August 2016.
-   */
-  @Deprecated
-  @GwtIncompatible
-  public static ListeningExecutorService sameThreadExecutor() {
-    return new DirectExecutorService();
-  }
-
-  // See sameThreadExecutor javadoc for behavioral notes.
+  // See newDirectExecutorService javadoc for behavioral notes.
   @GwtIncompatible // TODO
   private static final class DirectExecutorService extends AbstractListeningExecutorService {
     /**
@@ -318,7 +280,7 @@ public final class MoreExecutors {
       }
     }
 
-    // See sameThreadExecutor javadoc for unusual behavior of this method.
+    // See newDirectExecutorService javadoc for unusual behavior of this method.
     @Override
     public List<Runnable> shutdownNow() {
       shutdown();
@@ -419,7 +381,7 @@ public final class MoreExecutors {
    *     }
    *   }}</pre>
    *
-   * <p>This should be preferred to {@link #newDirectExecutorService()} because the implementing the
+   * <p>This should be preferred to {@link #newDirectExecutorService()} because implementing the
    * {@link ExecutorService} subinterface necessitates significant performance overhead.
    *
    * @since 18.0
@@ -650,13 +612,16 @@ public final class MoreExecutors {
       ListeningExecutorService executorService,
       Collection<? extends Callable<T>> tasks,
       boolean timed,
-      long nanos)
+      long timeout,
+      TimeUnit unit)
       throws InterruptedException, ExecutionException, TimeoutException {
     checkNotNull(executorService);
+    checkNotNull(unit);
     int ntasks = tasks.size();
     checkArgument(ntasks > 0);
     List<Future<T>> futures = Lists.newArrayListWithCapacity(ntasks);
     BlockingQueue<Future<T>> futureQueue = Queues.newLinkedBlockingQueue();
+    long timeoutNanos = unit.toNanos(timeout);
 
     // For efficiency, especially in executors with limited
     // parallelism, check to see if previously submitted tasks are
@@ -685,12 +650,12 @@ public final class MoreExecutors {
           } else if (active == 0) {
             break;
           } else if (timed) {
-            f = futureQueue.poll(nanos, TimeUnit.NANOSECONDS);
+            f = futureQueue.poll(timeoutNanos, TimeUnit.NANOSECONDS);
             if (f == null) {
               throw new TimeoutException();
             }
             long now = System.nanoTime();
-            nanos -= now - lastTime;
+            timeoutNanos -= now - lastTime;
             lastTime = now;
           } else {
             f = futureQueue.take();

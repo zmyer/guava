@@ -24,12 +24,10 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.SerializableTester;
-
-import junit.framework.TestCase;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import junit.framework.TestCase;
 
 /**
  * Unit test for {@link Optional}.
@@ -38,6 +36,23 @@ import java.util.Set;
  */
 @GwtCompatible(emulated = true)
 public final class OptionalTest extends TestCase {
+  public void testToJavaUtil_static() {
+    assertNull(Optional.toJavaUtil(null));
+    assertEquals(java.util.Optional.empty(), Optional.toJavaUtil(Optional.absent()));
+    assertEquals(java.util.Optional.of("abc"), Optional.toJavaUtil(Optional.of("abc")));
+  }
+
+  public void testToJavaUtil_instance() {
+    assertEquals(java.util.Optional.empty(), Optional.absent().toJavaUtil());
+    assertEquals(java.util.Optional.of("abc"), Optional.of("abc").toJavaUtil());
+  }
+
+  public void testFromJavaUtil() {
+    assertNull(Optional.fromJavaUtil(null));
+    assertEquals(Optional.absent(), Optional.fromJavaUtil(java.util.Optional.empty()));
+    assertEquals(Optional.of("abc"), Optional.fromJavaUtil(java.util.Optional.of("abc")));
+  }
+
   public void testAbsent() {
     Optional<String> optionalName = Optional.absent();
     assertFalse(optionalName.isPresent());
