@@ -19,13 +19,12 @@ package com.google.common.collect;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.annotations.GwtCompatible;
+import com.google.common.annotations.GwtIncompatible;
 import java.util.Comparator;
 import java.util.function.Function;
 import java.util.stream.Collector;
 
-/**
- * Collectors utilities for {@code common.collect} internals.
- */
+/** Collectors utilities for {@code common.collect} internals. */
 @GwtCompatible
 final class CollectCollectors {
   static <T, K, V> Collector<T, ?, ImmutableBiMap<K, V>> toImmutableBiMap(
@@ -41,12 +40,15 @@ final class CollectCollectors {
         new Collector.Characteristics[0]);
   }
 
+  private static final Collector<Object, ?, ImmutableList<Object>> TO_IMMUTABLE_LIST =
+      Collector.of(
+          ImmutableList::<Object>builder,
+          ImmutableList.Builder::add,
+          ImmutableList.Builder::combine,
+          ImmutableList.Builder::build);
+
   static <E> Collector<E, ?, ImmutableList<E>> toImmutableList() {
-    return Collector.of(
-        ImmutableList::<E>builder,
-        ImmutableList.Builder::add,
-        ImmutableList.Builder::combine,
-        ImmutableList.Builder::build);
+    return (Collector) TO_IMMUTABLE_LIST;
   }
 
   static <T, K, V> Collector<T, ?, ImmutableMap<K, V>> toImmutableMap(
@@ -61,12 +63,15 @@ final class CollectCollectors {
         ImmutableMap.Builder::build);
   }
 
+  private static final Collector<Object, ?, ImmutableSet<Object>> TO_IMMUTABLE_SET =
+      Collector.of(
+          ImmutableSet::<Object>builder,
+          ImmutableSet.Builder::add,
+          ImmutableSet.Builder::combine,
+          ImmutableSet.Builder::build);
+
   static <E> Collector<E, ?, ImmutableSet<E>> toImmutableSet() {
-    return Collector.of(
-        ImmutableSet::<E>builder,
-        ImmutableSet.Builder::add,
-        ImmutableSet.Builder::combine,
-        ImmutableSet.Builder::build);
+    return (Collector) TO_IMMUTABLE_SET;
   }
 
   static <T, K, V> Collector<T, ?, ImmutableSortedMap<K, V>> toImmutableSortedMap(
@@ -97,5 +102,33 @@ final class CollectCollectors {
         ImmutableSortedSet.Builder::combine,
         ImmutableSortedSet.Builder::build);
   }
-}
 
+  @GwtIncompatible
+  private static final Collector<Range<Comparable>, ?, ImmutableRangeSet<Comparable>>
+      TO_IMMUTABLE_RANGE_SET =
+          Collector.of(
+              ImmutableRangeSet::<Comparable>builder,
+              ImmutableRangeSet.Builder::add,
+              ImmutableRangeSet.Builder::combine,
+              ImmutableRangeSet.Builder::build);
+
+  @GwtIncompatible
+  static <E extends Comparable<? super E>>
+      Collector<Range<E>, ?, ImmutableRangeSet<E>> toImmutableRangeSet() {
+    return (Collector) TO_IMMUTABLE_RANGE_SET;
+  }
+
+  @GwtIncompatible
+  static <T, K extends Comparable<? super K>, V>
+      Collector<T, ?, ImmutableRangeMap<K, V>> toImmutableRangeMap(
+          Function<? super T, Range<K>> keyFunction,
+          Function<? super T, ? extends V> valueFunction) {
+    checkNotNull(keyFunction);
+    checkNotNull(valueFunction);
+    return Collector.of(
+        ImmutableRangeMap::<K, V>builder,
+        (builder, input) -> builder.put(keyFunction.apply(input), valueFunction.apply(input)),
+        ImmutableRangeMap.Builder::combine,
+        ImmutableRangeMap.Builder::build);
+  }
+}

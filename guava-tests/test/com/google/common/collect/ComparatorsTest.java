@@ -17,11 +17,17 @@
 package com.google.common.collect;
 
 import static java.util.Arrays.asList;
+import static java.util.Comparator.comparing;
+import static java.util.Comparator.naturalOrder;
 
+import com.google.common.annotations.GwtCompatible;
 import com.google.common.collect.testing.Helpers;
+import com.google.common.testing.CollectorTester;
 import com.google.common.testing.EqualsTester;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Optional;
 import junit.framework.TestCase;
 
 /**
@@ -29,6 +35,7 @@ import junit.framework.TestCase;
  *
  * @author Louis Wasserman
  */
+@GwtCompatible
 public class ComparatorsTest extends TestCase {
   @SuppressWarnings("unchecked") // dang varargs
   public void testLexicographical() {
@@ -68,5 +75,31 @@ public class ComparatorsTest extends TestCase {
     assertTrue(Comparators.isInStrictOrder(asList(0, 3), Ordering.natural()));
     assertTrue(Comparators.isInStrictOrder(Collections.singleton(1), Ordering.natural()));
     assertTrue(Comparators.isInStrictOrder(Collections.<Integer>emptyList(), Ordering.natural()));
+  }
+
+  public void testLeastCollector() {
+    CollectorTester.of(Comparators.<Integer>least(2, Comparator.naturalOrder()))
+        .expectCollects(Arrays.asList(1, 2), 1, 2, 3, 4, 5, 6)
+        .expectCollects(Arrays.asList(1), 1)
+        .expectCollects(Collections.emptyList());
+  }
+
+  public void testGreatestCollector() {
+    CollectorTester.of(Comparators.<Integer>greatest(2, Comparator.naturalOrder()))
+        .expectCollects(Arrays.asList(6, 5), 1, 2, 3, 4, 5, 6)
+        .expectCollects(Arrays.asList(1), 1)
+        .expectCollects(Collections.emptyList());
+  }
+
+  public void testEmptiesFirst() {
+    Optional<String> empty = Optional.empty();
+    Optional<String> abc = Optional.of("abc");
+    Optional<String> z = Optional.of("z");
+
+    Comparator<Optional<String>> comparator = Comparators.emptiesFirst(comparing(String::length));
+    Helpers.testComparator(comparator, empty, z, abc);
+
+    // No explicit type parameter required:
+    comparator = Comparators.emptiesFirst(naturalOrder());
   }
 }

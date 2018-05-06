@@ -5,7 +5,7 @@
   <parent>
     <groupId>com.google.guava</groupId>
     <artifactId>guava-parent</artifactId>
-    <version>21.0-SNAPSHOT</version>
+    <version>HEAD-jre-SNAPSHOT</version>
   </parent>
   <artifactId>guava-gwt</artifactId>
   <name>Guava GWT compatible libs</name>
@@ -17,9 +17,10 @@
     This project includes GWT-friendly sources.
   </description>
   <properties>
-    <gwt.test.include>**/GwtTestSuite.java</gwt.test.include>
-    <gwt.version>2.8.0</gwt.version>
-    <gwt.plugin.version>2.8.0</gwt.plugin.version>
+    <!-- We skip GWT tests by default. To run, pass -Dgwt.test.include=**/GwtTestSuite.java -->
+    <gwt.test.include>**/DoesNotMatchAnyTests.java</gwt.test.include>
+    <gwt.version>2.8.2</gwt.version>
+    <gwt.plugin.version>2.8.2</gwt.plugin.version>
     <gwt.logLevel>WARN</gwt.logLevel>
   </properties>
   <repositories>
@@ -43,25 +44,6 @@
     </pluginRepository>
   </pluginRepositories>
   <dependencies>
-    <!-- GWT requires a library's transitive dependencies to be present when
-         compiling a project that uses that library, thanks to its full-program
-         compilation, so we don't use optional=true. -->
-    <dependency>
-      <groupId>com.google.code.findbugs</groupId>
-      <artifactId>jsr305</artifactId>
-      <optional>false</optional>
-    </dependency>
-    <dependency>
-      <groupId>com.google.errorprone</groupId>
-      <artifactId>error_prone_annotations</artifactId>
-      <optional>false</optional>
-    </dependency>
-    <dependency>
-      <groupId>com.google.j2objc</groupId>
-      <artifactId>j2objc-annotations</artifactId>
-      <optional>false</optional>
-    </dependency>
-
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
@@ -231,14 +213,12 @@
             <goals><goal>run</goal></goals>
             <configuration>
               <target name="copy-gwt-resources">
-                <copy toDir="${project.build.directory}/guava-gwt-sources"
-                      verbose="true">
+                <copy toDir="${project.build.directory}/guava-gwt-sources">
                   <fileset dir="${project.build.directory}/guava-sources">
                     <contains text="@GwtCompatible"/>
                   </fileset>
                 </copy>
-                <copy toDir="${project.build.directory}/guava-test-gwt-sources"
-                      verbose="true">
+                <copy toDir="${project.build.directory}/guava-test-gwt-sources">
                   <fileset dir="${project.build.directory}/guava-test-sources">
                     <contains text="@GwtCompatible"/>
                   </fileset>
@@ -311,10 +291,11 @@
               <mode>htmlunit</mode>
               <htmlunit>FF38</htmlunit>
               <productionMode>true</productionMode>
-              <testTimeOut>21600 <!-- seconds --></testTimeOut>
               <extraJvmArgs>-Xms3500m -Xmx3500m -Xss1024k</extraJvmArgs>
               <sourceLevel>1.8</sourceLevel>
-              <testMethodTimeout>360 <!-- minutes --></testMethodTimeout>
+              <!-- Keep these timeouts very large because, if we hit the timeout, the tests silently pass :( -->
+              <testTimeOut>86400 <!-- seconds --></testTimeOut>
+              <testMethodTimeout>1440 <!-- minutes --></testMethodTimeout>
             </configuration>
           </execution>
         </executions>
